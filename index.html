@@ -31,16 +31,16 @@ button:hover { background:#e63939; }
 <header>College Football Gamecast</header>
 
 <div class="tab-buttons">
-  <button onclick="showTab('game')">Gamecast</button>
+  <button onclick="showTab('game')">Pick Game</button>
   <button onclick="showTab('playoff')">Playoffs</button>
   <button onclick="showTab('rank')">Rank Maker</button>
   <button onclick="showTab('history')">History</button>
 </div>
 
 <div class="container">
-  <!-- Gamecast -->
+  <!-- Game Selection -->
   <div class="games tab-content" id="game">
-    <h2>Pick a Game</h2>
+    <h2>Select Teams</h2>
     <select id="team1"></select>
     <select id="team2"></select>
     <button onclick="startGame()">Start Game</button>
@@ -49,6 +49,7 @@ button:hover { background:#e63939; }
     <button onclick="resetGame()">Reset</button>
   </div>
 
+  <!-- Gamecast Output -->
   <div class="gamecast tab-content" id="gamecast">
     <h2 id="matchup">No Game Selected</h2>
     <div id="scoreboard" class="scoreboard"></div>
@@ -60,7 +61,7 @@ button:hover { background:#e63939; }
     <div class="plays" id="plays"></div>
   </div>
 
-  <!-- History Tab -->
+  <!-- History -->
   <div class="history tab-content" id="historyTab">
     <h2>Game History</h2>
     <ul id="gameHistory"></ul>
@@ -108,36 +109,39 @@ const teams = [
 "California","Northwestern","Illinois","Purdue","Indiana","Rutgers","Syracuse",
 "Wake Forest","Boston College","SMU","Tulane","Memphis"
 ];
-
-/* ------------------ GAMECAST ------------------ */
 teams.forEach(t=>{
   document.getElementById("team1").add(new Option(t,t));
   document.getElementById("team2").add(new Option(t,t));
 });
 
+/* ------------------ GAMECAST ------------------ */
 let gameInterval, paused=false, history=[];
 let team1, team2, score1, score2, timeRemaining, quarter;
 
 function startGame(){
   clearInterval(gameInterval);
   paused=false;
+
+  // Switch to Gamecast tab automatically
+  showTab('gamecast');
+
   team1=document.getElementById("team1").value;
   team2=document.getElementById("team2").value;
   if(team1===team2) return alert("Pick different teams!");
-  
+
   score1=0; score2=0; timeRemaining=900; quarter=1;
   document.getElementById("matchup").innerText=`${team1} vs ${team2}`;
   document.getElementById("plays").innerHTML="";
   updateScoreboard();
-  gameInterval=setInterval(simulatePlay,500); // faster sim
+
+  gameInterval=setInterval(simulatePlay,500);
 }
 
 function simulatePlay(){
   if(paused) return;
-  
+
   if(timeRemaining<=0){
-    if(quarter<4){
-      quarter++; timeRemaining=900;
+    if(quarter<4){ quarter++; timeRemaining=900;
       document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`;
     } else {
       clearInterval(gameInterval);
@@ -156,8 +160,7 @@ function simulatePlay(){
   if(outcome<0.5){ playText="Drive stalls. Punt."; }
   else if(outcome<0.7){
     scoringTeam=Math.random()>0.5?team1:team2;
-    pts=3;
-    playText=`${scoringTeam} - FG ${Math.random()<0.15?"MISSED":"GOOD"}.`;
+    pts=3; playText=`${scoringTeam} - FG ${Math.random()<0.15?"MISSED":"GOOD"}.`;
   }
   else if(outcome<0.9){
     scoringTeam=Math.random()>0.5?team1:team2;
@@ -168,10 +171,7 @@ function simulatePlay(){
   }
   else if(outcome<0.95){ playText="Interception thrown!"; }
   else if(outcome<0.98){ playText="Fumble recovered!"; }
-  else { 
-    if(Math.random()<0.3){ scoringTeam=Math.random()>0.5?team1:team2; pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`; } 
-    else playText="Turnover on downs."; 
-  }
+  else { if(Math.random()<0.3){ scoringTeam=Math.random()>0.5?team1:team2; pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`; } else playText="Turnover on downs."; }
 
   if(pts>0){ if(scoringTeam===team1) score1+=pts; else score2+=pts; }
 
@@ -181,7 +181,7 @@ function simulatePlay(){
 
 function updateScoreboard(){
   document.getElementById("scoreboard").innerText=`${team1} ${score1} - ${team2} ${score2} | Q${quarter} ${formatTime()}`;
-  let diff=score1-score2, prob=50+diff*2-(4-quarter)*2; 
+  let diff=score1-score2, prob=50+diff*2-(4-quarter)*2;
   if(prob<1) prob=1; if(prob>99) prob=99;
   document.getElementById("odds").innerText=`Win Probability: ${team1} ${prob}% | ${team2} ${100-prob}%`;
   document.getElementById("barTeam1").style.width=prob+"%";
@@ -191,8 +191,7 @@ function updateScoreboard(){
 function pauseGame(){ paused=true; }
 function resumeGame(){ paused=false; }
 function resetGame(){ 
-  clearInterval(gameInterval); 
-  paused=false;
+  clearInterval(gameInterval); paused=false;
   document.getElementById("plays").innerHTML=""; 
   document.getElementById("matchup").innerText="No Game Selected"; 
   document.getElementById("scoreboard").innerText=""; 
@@ -201,12 +200,8 @@ function resetGame(){
   document.getElementById("barTeam2").style.width="50%"; 
 }
 
-function formatTime(){ 
-  let min=Math.floor(timeRemaining/60), sec=timeRemaining%60; 
-  return `${min}:${sec<10?"0":""}${sec}`; 
-}
+function formatTime(){ let min=Math.floor(timeRemaining/60), sec=timeRemaining%60; return `${min}:${sec<10?"0":""}${sec}`; }
 
-/* ------------------ HISTORY ------------------ */
 function updateHistory(){
   const hist = document.getElementById("gameHistory"); hist.innerHTML="";
   history.forEach(h=>{ hist.innerHTML+=`<li>${h.t1} ${h.s1} - ${h.t2} ${h.s2}</li>`; });
@@ -252,6 +247,5 @@ teams.forEach(t=>{ let input=document.createElement("input"); input.type="number
 
 function showRanks(){ const ranks=[]; teams.forEach(t=>{ let val=parseInt(document.getElementById("rank_"+t.replace(/\s/g,"_")).value); ranks.push({team:t, rank:val}); }); ranks.sort((a,b)=>a.rank-b.rank); let listHTML=""; ranks.forEach(r=>{ listHTML+=`<li>${r.rank}: ${r.team}</li>`; }); document.getElementById("rankList").innerHTML=listHTML; }
 </script>
-
 </body>
 </html>
