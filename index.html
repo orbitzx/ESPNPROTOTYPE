@@ -1,3 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>College Football Gamecast</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f5f5; margin:0; }
+    header { background:#cc0000; color:white; padding:15px; text-align:center; font-size:26px; font-weight:bold; }
+    .container { display:flex; padding:20px; gap:20px; }
+    .games, .gamecast { flex:1; background:white; border-radius:8px; padding:20px; box-shadow:0 3px 8px rgba(0,0,0,0.2); }
+    .game { background:#eee; padding:8px; margin:6px 0; border-radius:6px; cursor:pointer; }
+    .game:hover { background:#ddd; }
+    .scoreboard { font-size:30px; font-weight:bold; margin:10px 0; text-align:center; }
+    .quarter { margin-top:10px; font-weight:bold; color:#333; }
+    .plays { max-height:350px; overflow-y:auto; background:#fafafa; border:1px solid #ccc; border-radius:6px; padding:8px; }
+    .odds { margin-top:10px; font-style:italic; text-align:center; }
+  </style>
+</head>
+<body>
+
+<header>College Football Gamecast</header>
+
+<div class="container">
+  <div class="games">
+    <h2>Pick a Game</h2>
+    <select id="team1"></select>
+    <select id="team2"></select>
+    <button onclick="startGame()">Start Game</button>
+  </div>
+
+  <div class="gamecast">
+    <h2 id="matchup">No Game Selected</h2>
+    <div id="scoreboard" class="scoreboard"></div>
+    <div id="odds" class="odds"></div>
+    <div class="plays" id="plays"></div>
+  </div>
+</div>
+
 <script>
 const teams = [
   "Alabama","Georgia","Ohio State","Michigan","Texas","Oklahoma",
@@ -64,7 +102,7 @@ function simulatePlay(){
     if(Math.random()>0.05){ pts+=1; playText+=" XP GOOD."; } else playText+=" XP NO GOOD.";
   }
   else {
-    // rarer safety (about 3% chance total)
+    // rarer safety (~3% of outcomes max)
     if(Math.random()<0.3){
       scoringTeam=Math.random()>0.5?team1:team2;
       pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`;
@@ -101,3 +139,5 @@ function updateOdds(){
     `Win Probability: ${team1} ${prob}% | ${team2} ${100-prob}%`;
 }
 </script>
+</body>
+</html>
