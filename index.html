@@ -1,418 +1,146 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SportsCenter — NCAAF / NFL / NBA</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="utf-8">
+  <title>SportsCenter Game Simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root{
-      --bg:#0f1724; --card:#0b1220; --muted:#98a0b3; --accent:#ff4c4c;
-      --glass: rgba(255,255,255,0.03);
-      color-scheme: dark;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%; margin:0; font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:linear-gradient(180deg,#071024 0%, #081225 100%); color:#e6eef6;}
-    .wrap{max-width:1200px;margin:28px auto;padding:20px;}
-    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:18px}
-    .brand{display:flex;gap:12px;align-items:center}
-    .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#0ea5a4,#6366f1);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#021124;box-shadow:0 6px 20px rgba(0,0,0,0.6)}
-    h1{margin:0;font-size:20px;letter-spacing:0.2px}
-    .nav{display:flex;gap:8px;align-items:center}
-    .nav button{background:transparent;border:1px solid transparent;padding:8px 12px;border-radius:8px;color:var(--muted);cursor:pointer}
-    .nav button.active{background:var(--glass); border-color:rgba(255,255,255,0.04); color:#fff}
-    .grid{display:grid;grid-template-columns: 1fr 380px; gap:18px}
-    @media (max-width:1000px){ .grid{grid-template-columns:1fr; } .rightCol{order:-1} }
-
-    /* Left: main columns */
-    .mainCol{display:flex;flex-direction:column;gap:14px}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:12px;padding:14px;box-shadow:0 8px 30px rgba(2,6,23,0.6); border:1px solid rgba(255,255,255,0.03)}
-    .scoreboard{display:flex;flex-direction:column;gap:10px}
-    .leagueHeader{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-    .leagueBadge{padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.25);font-weight:700}
-    .match{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.005), transparent);border:1px solid rgba(255,255,255,0.02)}
-    .team{display:flex;gap:12px;align-items:center;min-width:44%}
-    .logoSmall{width:44px;height:44px;border-radius:8px;background:#ffffff10;display:flex;align-items:center;justify-content:center;font-weight:700}
-    .team .name{font-weight:600}
-    .score{font-weight:800;font-size:20px;min-width:60px;text-align:center}
-    .status{font-size:12px;color:var(--muted)}
-
-    /* right column */
-    .rightCol{display:flex;flex-direction:column;gap:14px}
-    .newsList{display:flex;flex-direction:column;gap:10px}
-    .newsItem{display:flex;gap:12px;align-items:center}
-    .newsThumb{width:90px;height:60px;border-radius:8px;background:#132036;display:flex;align-items:center;justify-content:center;font-weight:700}
-    .standings{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-    .standCol{padding:8px;background:rgba(255,255,255,0.01);border-radius:8px}
-    .standRow{display:flex;justify-content:space-between;padding:6px;border-radius:6px}
-    .controls{display:flex;gap:8px;align-items:center}
-    .btn{padding:8px 10px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);cursor:pointer;color:var(--muted)}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),#ff7a7a); color:#021124;border:0;font-weight:700}
-    .search{padding:8px;border-radius:10px;background:#071427;border:1px solid rgba(255,255,255,0.02);color:var(--muted)}
-    footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
-
-    /* small helpers */
-    .muted{color:var(--muted)}
-    .pill{padding:6px 8px;border-radius:999px;background:rgba(255,255,255,0.02);font-weight:600}
-    .flex{display:flex;gap:10px;align-items:center}
-    .spacer{flex:1}
+    body { font-family: Arial, sans-serif; background:#0f1724; color:#eee; margin:0; }
+    header { background:#111a2c; padding:12px 20px; display:flex; justify-content:space-between; align-items:center;}
+    h1 { margin:0; font-size:20px; color:#fff; }
+    .container { padding:20px; max-width:1200px; margin:auto; }
+    .games { display:flex; flex-wrap:wrap; gap:12px; }
+    .card { background:#1b2740; border-radius:10px; padding:12px; flex:1 1 250px; cursor:pointer; }
+    .card:hover { background:#253351; }
+    .card h3 { margin:0 0 6px 0; }
+    .gamecast { position:fixed; top:0; left:0; width:100%; height:100%; background:#000c18cc; display:none; align-items:center; justify-content:center; }
+    .panel { background:#1e2a44; border-radius:12px; padding:20px; width:600px; max-width:95%; max-height:90%; display:flex; flex-direction:column; }
+    .scoreboard { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .scoreboard h2 { margin:0; }
+    .playbyplay { flex:1; overflow:auto; background:#0f1724; border-radius:8px; padding:10px; font-size:14px; }
+    .closeBtn { background:#ff4c4c; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; color:#fff; }
+    .controls { margin-bottom:12px; }
+    select,button { padding:6px; border-radius:6px; border:none; margin-right:8px; }
+    .live { color:#4cff79; font-weight:bold; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand">
-        <div class="logo">SC</div>
-        <div>
-          <h1>SportsCenter</h1>
-          <div class="muted" style="font-size:12px">NCAAF • NFL • NBA — Live scoreboard, news & standings</div>
-        </div>
-      </div>
-
-      <div class="nav" role="navigation" aria-label="main navigation">
-        <button class="btn active" data-league="NCAAF">NCAAF</button>
-        <button class="btn" data-league="NFL">NFL</button>
-        <button class="btn" data-league="NBA">NBA</button>
-      </div>
-    </header>
-
-    <div class="grid">
-      <main class="mainCol">
-        <!-- Live scoreboard -->
-        <section class="card scoreboard" id="scoreboardCard">
-          <div class="leagueHeader">
-            <div class="leagueBadge" id="leagueBadge">NCAAF</div>
-            <div class="muted" id="leagueSubtitle">Live Games</div>
-            <div class="spacer"></div>
-            <div class="controls">
-              <input class="search" id="searchTeam" placeholder="Search teams or games" />
-              <button class="btn" id="refreshBtn">Refresh</button>
-              <button class="btn primary" id="simulateBtn">Simulate Results</button>
-            </div>
-          </div>
-
-          <div id="matchesList">
-            <!-- Matches inserted here -->
-          </div>
-        </section>
-
-        <!-- Featured / headlines -->
-        <section class="card" id="featured">
-          <h3 style="margin:0 0 10px 0">Featured</h3>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.01)">
-              <h4 style="margin:0 0 6px 0">Top story — Rivalry showdown</h4>
-              <p class="muted" style="margin:0;font-size:14px">A late touchdown changed the outcome. Coaches react to new injury updates.</p>
-            </div>
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.01)">
-              <h4 style="margin:0 0 6px 0">Draft watch</h4>
-              <p class="muted" style="margin:0;font-size:14px">Scouts mark four prospects as first-round locks after the combine.</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- Recent games / archive -->
-        <section class="card" id="recentGames">
-          <h3 style="margin:0 0 10px 0">Recent Results</h3>
-          <div id="recentList" style="display:flex;flex-direction:column;gap:8px"></div>
-        </section>
-      </main>
-
-      <!-- Right column -->
-      <aside class="rightCol">
-        <section class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <h3 style="margin:0">Standings</h3>
-            <div class="muted" id="standLeague">NCAAF — Top</div>
-          </div>
-          <div class="standings" id="standingsGrid">
-            <!-- two columns of standings -->
-          </div>
-        </section>
-
-        <section class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <h3 style="margin:0">Latest News</h3>
-            <div class="muted">Updated now</div>
-          </div>
-          <div class="newsList" id="newsList">
-            <!-- news items -->
-          </div>
-        </section>
-
-        <section class="card">
-          <h3 style="margin:0 0 8px 0">Quick tools</h3>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <button class="btn" id="toggleClock">Toggle Clock</button>
-            <button class="btn" id="resetMatches">Reset Matches</button>
-            <div class="muted" style="font-size:13px">Tip: Click "Simulate Results" to randomly finish all open matches.</div>
-          </div>
-        </section>
-      </aside>
+  <header>
+    <h1>SportsCenter — Fake Games</h1>
+    <div>Pick teams → Click game → Watch Gamecast</div>
+  </header>
+  <div class="container">
+    <div class="controls">
+      <select id="team1"></select>
+      <select id="team2"></select>
+      <button onclick="createGame()">Create Game</button>
     </div>
+    <div class="games" id="gamesList"></div>
+  </div>
 
-    <footer class="muted">Built for demo — data is mock/simulated. Design inspired by major sports publishers.</footer>
+  <!-- Gamecast Overlay -->
+  <div class="gamecast" id="gamecast">
+    <div class="panel">
+      <div class="scoreboard">
+        <h2 id="gcTitle"></h2>
+        <div><span id="gcClock">5:00</span> — <span id="gcStatus" class="live">LIVE</span></div>
+        <button class="closeBtn" onclick="closeGamecast()">X</button>
+      </div>
+      <div class="scoreboard">
+        <div id="gcHome"></div>
+        <div id="gcScore">0 - 0</div>
+        <div id="gcAway"></div>
+      </div>
+      <div class="playbyplay" id="gcLog"></div>
+    </div>
   </div>
 
   <script>
-    /***********************
-     * Mock data & helpers
-     ***********************/
-    const leagues = {
-      NCAAF: {
-        name: "NCAAF",
-        teams: [
-          {id: "ALB", name:"Alabama", abbrev:"ALA"},
-          {id: "OSU", name:"Ohio State", abbrev:"OSU"},
-          {id: "CLEM", name:"Clemson", abbrev:"CLEM"},
-          {id: "UGA", name:"Georgia", abbrev:"UGA"},
-          {id: "MICH", name:"Michigan", abbrev:"MICH"}
-        ],
-        matches: [
-          {id:"n1", home:"ALB", away:"OSU", homeScore:24, awayScore:21, status:"4th Q - 10:23"},
-          {id:"n2", home:"CLEM", away:"UGA", homeScore:14, awayScore:28, status:"Halftime"},
-        ]
-      },
-      NFL: {
-        name: "NFL",
-        teams: [
-          {id:"NE", name:"Patriots", abbrev:"NE"},
-          {id:"KC", name:"Chiefs", abbrev:"KC"},
-          {id:"GB", name:"Packers", abbrev:"GB"},
-          {id:"SF", name:"49ers", abbrev:"SF"}
-        ],
-        matches: [
-          {id:"f1", home:"KC", away:"NE", homeScore:7, awayScore:10, status:"1st Q - 08:12"},
-          {id:"f2", home:"SF", away:"GB", homeScore:21, awayScore:17, status:"Final"},
-        ]
-      },
-      NBA: {
-        name: "NBA",
-        teams: [
-          {id:"LAL", name:"Lakers", abbrev:"LAL"},
-          {id:"BOS", name:"Celtics", abbrev:"BOS"},
-          {id:"GSW", name:"Warriors", abbrev:"GSW"},
-          {id:"MIL", name:"Bucks", abbrev:"MIL"}
-        ],
-        matches: [
-          {id:"b1", home:"LAL", away:"BOS", homeScore:98, awayScore:101, status:"3rd Q - 06:43"},
-          {id:"b2", home:"GSW", away:"MIL", homeScore:60, awayScore:55, status:"Halftime"},
-        ]
-      }
-    };
+    const TEAMS = ["Alabama","Ohio State","Clemson","Georgia","Michigan","Patriots","Chiefs","Packers","49ers","Lakers","Celtics","Warriors","Bucks"];
+    const games = [];
+    const gamesList = document.getElementById("gamesList");
 
-    // Utility: get team object
-    function getTeam(leagueKey, teamId){
-      return leagues[leagueKey].teams.find(t => t.id === teamId) || {id:teamId,name:teamId,abbrev:teamId};
+    // Populate dropdowns
+    const t1 = document.getElementById("team1"), t2 = document.getElementById("team2");
+    TEAMS.forEach(t=>{
+      t1.add(new Option(t,t));
+      t2.add(new Option(t,t));
+    });
+
+    function createGame(){
+      if(t1.value===t2.value) return alert("Pick two different teams!");
+      const game = {
+        id:Date.now(),
+        home:t1.value,
+        away:t2.value,
+        homeScore:0, awayScore:0,
+        status:"Not Started"
+      };
+      games.push(game);
+      renderGames();
     }
 
-    // Random int
-    function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min }
-
-    /***********************
-     * UI rendering
-     ***********************/
-    let currentLeague = "NCAAF";
-    const matchesListEl = document.getElementById('matchesList');
-    const leagueBadge = document.getElementById('leagueBadge');
-    const standLeagueEl = document.getElementById('standLeague');
-    const standingsGrid = document.getElementById('standingsGrid');
-    const newsList = document.getElementById('newsList');
-    const recentList = document.getElementById('recentList');
-
-    function renderMatches(leagueKey, filterText=''){
-      const data = leagues[leagueKey];
-      leagueBadge.textContent = data.name;
-      standLeagueEl.textContent = `${data.name} — Top`;
-      matchesListEl.innerHTML = '';
-      const list = data.matches
-        .filter(m => {
-          if(!filterText) return true;
-          const t1 = getTeam(leagueKey,m.home).name.toLowerCase();
-          const t2 = getTeam(leagueKey,m.away).name.toLowerCase();
-          return t1.includes(filterText) || t2.includes(filterText) || m.status.toLowerCase().includes(filterText);
-        });
-
-      if(list.length === 0){
-        matchesListEl.innerHTML = `<div class="muted">No active matches for ${data.name}</div>`;
-        return;
-      }
-
-      list.forEach(m => {
-        const home = getTeam(leagueKey,m.home), away = getTeam(leagueKey,m.away);
-        const div = document.createElement('div');
-        div.className = 'match';
-        div.innerHTML = `
-          <div class="team">
-            <div class="logoSmall" aria-hidden="true">${home.abbrev}</div>
-            <div>
-              <div class="name">${home.name}</div>
-              <div class="muted" style="font-size:12px">${home.id}</div>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-            <div class="score">${m.homeScore} — ${m.awayScore}</div>
-            <div class="status">${m.status}</div>
-            <div style="display:flex;gap:6px;margin-top:6px">
-              <button class="btn" onclick="simulateSingle('${leagueKey}','${m.id}')">Finish</button>
-              <button class="btn" onclick="toggleFavorite('${m.id}')">★</button>
-            </div>
-          </div>
-          <div class="team" style="justify-content:flex-end">
-            <div style="text-align:right">
-              <div class="name">${away.name}</div>
-              <div class="muted" style="font-size:12px">${away.id}</div>
-            </div>
-            <div class="logoSmall" aria-hidden="true">${away.abbrev}</div>
-          </div>
-        `;
-        matchesListEl.appendChild(div);
+    function renderGames(){
+      gamesList.innerHTML="";
+      games.forEach(g=>{
+        const card=document.createElement("div");
+        card.className="card";
+        card.innerHTML=`<h3>${g.home} vs ${g.away}</h3><div>Status: ${g.status}</div>`;
+        card.onclick=()=>openGamecast(g);
+        gamesList.appendChild(card);
       });
     }
 
-    function renderStandings(leagueKey){
-      // For demo: create a simple wins-losses table from teams
-      const teams = leagues[leagueKey].teams.map(t => {
-        return {id:t.id,name:t.name,wins:randInt(0,10),losses:randInt(0,10)};
-      }).sort((a,b)=> (b.wins - b.losses) - (a.wins - a.losses));
-
-      standingsGrid.innerHTML = '';
-      // split into two columns for compact display
-      const half = Math.ceil(teams.length / 2);
-      const colA = teams.slice(0,half), colB = teams.slice(half);
-      const colToHTML = col => col.map(t => `<div class="standRow"><div>${t.name}</div><div class="muted">${t.wins}-${t.losses}</div></div>`).join('');
-      const left = document.createElement('div'); left.className='standCol'; left.innerHTML = `<strong class="muted">Conference A</strong>` + colToHTML(colA);
-      const right = document.createElement('div'); right.className='standCol'; right.innerHTML = `<strong class="muted">Conference B</strong>` + colToHTML(colB);
-      standingsGrid.appendChild(left);
-      standingsGrid.appendChild(right);
+    // Gamecast simulation
+    let simInterval;
+    function openGamecast(game){
+      document.getElementById("gamecast").style.display="flex";
+      document.getElementById("gcTitle").innerText=`${game.home} vs ${game.away}`;
+      document.getElementById("gcHome").innerText=game.home;
+      document.getElementById("gcAway").innerText=game.away;
+      document.getElementById("gcScore").innerText=`${game.homeScore} - ${game.awayScore}`;
+      document.getElementById("gcLog").innerHTML="";
+      game.status="LIVE";
+      startSim(game);
     }
 
-    function renderNews(){
-      const sample = [
-        {title:"Coach praises team's resilience after tough loss", src:"Wire"},
-        {title:"Rookie makes big leap in preseason", src:"Insider"},
-        {title:"Injury update: key starter day-to-day", src:"Beat"}
-      ];
-      newsList.innerHTML = '';
-      sample.forEach(n => {
-        const el = document.createElement('div'); el.className='newsItem';
-        el.innerHTML = `<div class="newsThumb">${n.src}</div><div><strong>${n.title}</strong><div class="muted" style="font-size:13px">By ${n.src} • ${new Date().toLocaleTimeString()}</div></div>`;
-        newsList.appendChild(el);
-      });
+    function closeGamecast(){
+      clearInterval(simInterval);
+      document.getElementById("gamecast").style.display="none";
     }
 
-    function renderRecent(){
-      recentList.innerHTML = '';
-      // pull final matches from each league's matches marked "Final"
-      const finals = [];
-      for(const key of Object.keys(leagues)){
-        leagues[key].matches.forEach(m=>{
-          if(m.status.toLowerCase().includes('final')) finals.push({league:key,match:m});
-        });
-      }
-      if(finals.length === 0){
-        recentList.innerHTML = '<div class="muted">No final results yet</div>';
-        return;
-      }
-      finals.forEach(f => {
-        const m=f.match;
-        const home=getTeam(f.league,m.home), away=getTeam(f.league,m.away);
-        const div=document.createElement('div'); div.style.display='flex'; div.style.justifyContent='space-between';
-        div.innerHTML = `<div class="muted" style="font-size:13px">${f.league} • ${home.abbrev} ${m.homeScore} - ${m.awayScore} ${away.abbrev}</div><div class="muted" style="font-size:13px">${m.status}</div>`;
-        recentList.appendChild(div);
-      });
+    function startSim(game){
+      let time=300; // 5 min = 300 sec
+      simInterval=setInterval(()=>{
+        if(time<=0){
+          clearInterval(simInterval);
+          game.status="Final";
+          document.getElementById("gcStatus").innerText="Final";
+          renderGames();
+          return;
+        }
+        // update clock
+        time-=20; // each tick = 20s
+        const mins=Math.floor(time/60), secs=(time%60).toString().padStart(2,"0");
+        document.getElementById("gcClock").innerText=`${mins}:${secs}`;
+
+        // random event
+        const log=document.getElementById("gcLog");
+        if(Math.random()>0.5){
+          const team=Math.random()>0.5?"home":"away";
+          const pts=[2,3][Math.floor(Math.random()*2)];
+          if(team==="home") game.homeScore+=pts;
+          else game.awayScore+=pts;
+          const msg=`${team==="home"?game.home:game.away} scores ${pts}!`;
+          log.innerHTML=`<div>${msg}</div>`+log.innerHTML;
+        } else {
+          const events=["Turnover","Foul","Missed Shot","Timeout"];
+          const msg=(Math.random()>0.5?game.home:game.away)+" — "+events[Math.floor(Math.random()*events.length)];
+          log.innerHTML=`<div class="muted">${msg}</div>`+log.innerHTML;
+        }
+        document.getElementById("gcScore").innerText=`${game.homeScore} - ${game.awayScore}`;
+      },1500); // 15 seconds total → 10 ticks
     }
-
-    /***************************
-     * Actions / Simulation
-     ***************************/
-    function simulateResultsForLeague(leagueKey){
-      const matches = leagues[leagueKey].matches;
-      matches.forEach(m=>{
-        // choose winner randomly, set score with some reasonable ranges per sport
-        const sport = leagueKey;
-        const homeAdd = randInt(0,25);
-        const awayAdd = randInt(0,25);
-        m.homeScore += homeAdd;
-        m.awayScore += awayAdd;
-        m.status = 'Final';
-      });
-      renderMatches(leagueKey, document.getElementById('searchTeam').value.toLowerCase());
-      renderRecent();
-    }
-
-    function simulateSingle(leagueKey, matchId){
-      const m = leagues[leagueKey].matches.find(x=>x.id===matchId);
-      if(!m) return;
-      if(Math.random()>0.5){ m.homeScore += randInt(3,24); } else { m.awayScore += randInt(3,24) }
-      m.status = 'Final';
-      renderMatches(leagueKey, document.getElementById('searchTeam').value.toLowerCase());
-      renderRecent();
-    }
-
-    function toggleFavorite(matchId){
-      alert('Added to favorites (demo): ' + matchId);
-    }
-
-    /***************************
-     * Interactions & init
-     ***************************/
-    document.querySelectorAll('.nav button').forEach(b => {
-      b.addEventListener('click', () => {
-        document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
-        b.classList.add('active');
-        currentLeague = b.dataset.league;
-        renderMatches(currentLeague);
-        renderStandings(currentLeague);
-      });
-    });
-
-    document.getElementById('simulateBtn').addEventListener('click', () => {
-      simulateResultsForLeague(currentLeague);
-    });
-
-    document.getElementById('refreshBtn').addEventListener('click', () => {
-      renderMatches(currentLeague, document.getElementById('searchTeam').value.toLowerCase());
-      renderStandings(currentLeague);
-      renderNews();
-      renderRecent();
-    });
-
-    document.getElementById('searchTeam').addEventListener('input', (e) => {
-      renderMatches(currentLeague, e.target.value.toLowerCase());
-    });
-
-    document.getElementById('toggleClock').addEventListener('click', () => {
-      // for demo: toggle showing the status field
-      const nodes = document.querySelectorAll('.status');
-      nodes.forEach(n => n.style.display = (n.style.display === 'none') ? 'block' : 'none');
-    });
-
-    document.getElementById('resetMatches').addEventListener('click', () => {
-      // Reset to initial mock data by reloading page state (non-destructive for a demo)
-      location.reload();
-    });
-
-    // initial render
-    renderMatches(currentLeague);
-    renderStandings(currentLeague);
-    renderNews();
-    renderRecent();
-
-    // small periodic update simulation to mimic live feed
-    setInterval(()=>{
-      // randomly nudge a live match score for visual liveliness
-      const mList = leagues[currentLeague].matches.filter(x => !x.status.toLowerCase().includes('final'));
-      if(mList.length>0){
-        const m = mList[randInt(0,mList.length-1)];
-        if(Math.random()>0.6) m.homeScore += randInt(0,3);
-        else m.awayScore += randInt(0,3);
-        // small chance to mark final
-        if(Math.random()>0.985) m.status = "Final";
-        renderMatches(currentLeague, document.getElementById('searchTeam').value.toLowerCase());
-        renderRecent();
-      }
-    }, 7000);
   </script>
 </body>
 </html>
