@@ -1,146 +1,564 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>SportsCenter Game Simulator</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: Arial, sans-serif; background:#0f1724; color:#eee; margin:0; }
-    header { background:#111a2c; padding:12px 20px; display:flex; justify-content:space-between; align-items:center;}
-    h1 { margin:0; font-size:20px; color:#fff; }
-    .container { padding:20px; max-width:1200px; margin:auto; }
-    .games { display:flex; flex-wrap:wrap; gap:12px; }
-    .card { background:#1b2740; border-radius:10px; padding:12px; flex:1 1 250px; cursor:pointer; }
-    .card:hover { background:#253351; }
-    .card h3 { margin:0 0 6px 0; }
-    .gamecast { position:fixed; top:0; left:0; width:100%; height:100%; background:#000c18cc; display:none; align-items:center; justify-content:center; }
-    .panel { background:#1e2a44; border-radius:12px; padding:20px; width:600px; max-width:95%; max-height:90%; display:flex; flex-direction:column; }
-    .scoreboard { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-    .scoreboard h2 { margin:0; }
-    .playbyplay { flex:1; overflow:auto; background:#0f1724; border-radius:8px; padding:10px; font-size:14px; }
-    .closeBtn { background:#ff4c4c; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; color:#fff; }
-    .controls { margin-bottom:12px; }
-    select,button { padding:6px; border-radius:6px; border:none; margin-right:8px; }
-    .live { color:#4cff79; font-weight:bold; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CFB Live — Fake Matchups & Gamecast</title>
+<style>
+  :root{
+    --bg:#071223; --card:#0f1b2b; --muted:#98a0b3; --accent:#c62828;
+  }
+  body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:linear-gradient(180deg,#051024,#081428);color:#eaf4ff}
+  .wrap{max-width:1200px;margin:22px auto;padding:18px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#ff6b6b,#ff9944);display:flex;align-items:center;justify-content:center;font-weight:800;color:#051124}
+  h1{margin:0;font-size:20px}
+  .controls{display:flex;gap:10px;align-items:center}
+  select,button{padding:8px;border-radius:8px;border:0;background:#08182a;color:#eaf4ff}
+  .btn{background:linear-gradient(90deg,#2b7cff,#1fb6ff);font-weight:700}
+  .grid{display:grid;grid-template-columns:1fr 440px;gap:18px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.03)}
+  .matchList{display:flex;flex-direction:column;gap:10px}
+  .matchCard{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.01);cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+  .muted{color:var(--muted)}
+  /* Gamecast overlay */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;padding:20px}
+  .panel{width:920px;max-width:98%;max-height:90%;background:#071a2b;border-radius:12px;padding:14px;display:grid;grid-template-columns:1fr 380px;gap:12px;border:1px solid rgba(255,255,255,0.04)}
+  .panelRight{background:linear-gradient(180deg,#081f33,#042233);padding:12px;border-radius:10px;overflow:auto}
+  .scoreboard{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:8px;background:linear-gradient(90deg,#02121f,#061b2b);color:#fff}
+  .teamsRow{display:flex;align-items:center;justify-content:space-between}
+  .teamName{font-weight:800;font-size:20px}
+  .scoreBig{font-weight:900;font-size:46px;letter-spacing:1px}
+  .meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:14px}
+  .playByPlay{background:#031021;border-radius:8px;padding:8px;max-height:520px;overflow:auto;border:1px solid rgba(255,255,255,0.03)}
+  .play{padding:6px;border-bottom:1px dashed rgba(255,255,255,0.02)}
+  .play strong{color:#fff}
+  .oddsBar{height:10px;background:#062232;border-radius:6px;overflow:hidden;margin-top:8px}
+  .oddsFill{height:100%;background:linear-gradient(90deg,#0da3ff,#7be0ff);width:50%}
+  .fontChoice{display:flex;gap:6px;align-items:center}
+  /* fake fonts (swapable) */
+  .font-vast .scoreBig{font-family: "Impact", "Arial Black", sans-serif; letter-spacing:2px}
+  .font-espn .scoreBig{font-family: "Oswald", "Helvetica Neue", Arial, sans-serif; font-weight:800}
+  /* small helpers */
+  .small{font-size:13px;color:var(--muted)}
+  .footer{margin-top:12px;color:var(--muted);font-size:13px;text-align:center}
+  @media (max-width:980px){ .grid{grid-template-columns:1fr} .panel{grid-template-columns:1fr} }
+</style>
 </head>
 <body>
-  <header>
-    <h1>SportsCenter — Fake Games</h1>
-    <div>Pick teams → Click game → Watch Gamecast</div>
-  </header>
-  <div class="container">
-    <div class="controls">
-      <select id="team1"></select>
-      <select id="team2"></select>
-      <button onclick="createGame()">Create Game</button>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">CFB</div>
+        <div>
+          <h1>CFB Live — Fake Matchups & Gamecast</h1>
+          <div class="muted small">Play-by-play, drives, touchdowns, field goals, safeties & live odds</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label class="small muted">Speed:</label>
+        <select id="speed">
+          <option value="fast">Demo — 15s per 5-min game</option>
+          <option value="medium" selected>Medium — 60s per 5-min game</option>
+          <option value="long">Real-ish — 15 minutes per 5-min game</option>
+        </select>
+        <button class="btn" id="createBtn">Create Matchup</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- left: create + matches -->
+      <div class="card">
+        <h3 style="margin-top:0">Create Fake CFB Game</h3>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <select id="teamA" style="flex:1"></select>
+          <select id="teamB" style="flex:1"></select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+          <input id="homeCheckbox" type="checkbox" /> <label class="small muted">Make left team Home</label>
+          <div style="flex:1"></div>
+          <button id="addQuick" class="">Add quick sample rosters</button>
+        </div>
+
+        <h4>Active Matchups</h4>
+        <div class="matchList" id="matchList"></div>
+
+        <div class="footer">Team list based on common FBS programs (reference: public FBS lists). :contentReference[oaicite:1]{index=1}</div>
+      </div>
+
+      <!-- right: small help / upcoming -->
+      <aside class="card">
+        <h4 style="margin-top:0">Tips</h4>
+        <ul class="small muted">
+          <li>Click a matchup to open the Gamecast (live play-by-play).</li>
+          <li>Pick simulation Speed — "long" spreads the 5 minutes across ~15 minutes.</li>
+          <li>Scoreboard fonts: pick "Vast" or "ESPN" to change the scoreboard look (these use system fonts for demo).</li>
+        </ul>
+
+        <hr style="border-color:rgba(255,255,255,0.03)" />
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label class="small muted">Scoreboard Font</label>
+          <div class="fontChoice">
+            <button id="fontDefault">Default</button>
+            <button id="fontVast">Vast XL Black</button>
+            <button id="fontEpsn">ESPN Scoreboard</button>
+          </div>
+        </div>
+      </aside>
     </div>
-    <div class="games" id="gamesList"></div>
   </div>
 
-  <!-- Gamecast Overlay -->
-  <div class="gamecast" id="gamecast">
-    <div class="panel">
-      <div class="scoreboard">
-        <h2 id="gcTitle"></h2>
-        <div><span id="gcClock">5:00</span> — <span id="gcStatus" class="live">LIVE</span></div>
-        <button class="closeBtn" onclick="closeGamecast()">X</button>
+  <!-- Gamecast overlay -->
+  <div class="overlay" id="overlay">
+    <div class="panel" id="panel">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div>
+            <div class="small muted" id="g_comp">College Football • Fake Gamecast</div>
+            <div class="teamsRow" id="g_teams">
+              <div class="teamName" id="g_homeName">HOME</div>
+              <div class="teamName" id="g_awayName">AWAY</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div class="small muted" id="g_clockLabel">Clock</div>
+            <div class="scoreBig" id="g_score">0 - 0</div>
+            <div class="meta">
+              <div id="g_clock">5:00</div>
+              <div id="g_status" class="muted">Q2</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-bottom:8px;align-items:center">
+          <div class="small muted">Poss:</div>
+          <div id="g_possession" class="small">—</div>
+          <div style="flex:1"></div>
+          <div class="small muted">Win Prob</div>
+          <div id="g_winProb" class="small">50%</div>
+        </div>
+
+        <div class="playByPlay" id="playLog"></div>
       </div>
-      <div class="scoreboard">
-        <div id="gcHome"></div>
-        <div id="gcScore">0 - 0</div>
-        <div id="gcAway"></div>
+
+      <div class="panelRight">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div>
+            <strong id="g_headline">Live Drive & Scoring</strong>
+            <div class="small muted">Drive summary and scoring plays</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button id="pauseBtn">Pause</button>
+            <button id="closeBtn">Close</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:8px">
+          <div class="small muted">Live Odds</div>
+          <div class="oddsBar"><div class="oddsFill" id="oddsFill" style="width:50%"></div></div>
+          <div class="small muted" id="oddsText">Home 50% • Away 50%</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="small muted">Drive Summary</div>
+          <div id="driveSummary" style="margin-top:6px" class="small muted">No drives yet</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="small muted">Rosters (demo)</div>
+          <div id="rosterList" style="margin-top:8px" class="small muted"></div>
+        </div>
       </div>
-      <div class="playbyplay" id="gcLog"></div>
     </div>
   </div>
 
-  <script>
-    const TEAMS = ["Alabama","Ohio State","Clemson","Georgia","Michigan","Patriots","Chiefs","Packers","49ers","Lakers","Celtics","Warriors","Bucks"];
-    const games = [];
-    const gamesList = document.getElementById("gamesList");
+<script>
+/* ---------------------------
+   Teams (wide list of familiar FBS programs)
+   Source/reference: public lists of FBS schools. See UI citation.
+   --------------------------- */
+const TEAMS = [
+"Air Force","Akron","Alabama","Appalachian State","Arizona","Arizona State","Arkansas","Arkansas State",
+"Auburn","Ball State","Baylor","Boise State","Boston College","Bowling Green","Buffalo","BYU","California",
+"Central Michigan","Cincinnati","Clemson","Coastal Carolina","Colorado","Colorado State","Connecticut (UConn)",
+"Duke","Eastern Michigan","ECU (East Carolina)","Florida","Florida Atlantic","Florida State","Fresno State",
+"Georgia","Georgia Southern","Georgia State","Hawaii","Houston","Illinois","Indiana","Iowa","Iowa State",
+"Kansas","Kansas State","Kent State","Kentucky","Liberty","Louisiana (Ragin' Cajuns)","Louisiana Tech",
+"Louisville","LSU","Marshall","Maryland","Memphis","Miami (FL)","Miami (OH)","Michigan","Michigan State",
+"Mid Tennessee","Minnesota","Mississippi State","Missouri","Navy","NC State","Nebraska","Nevada","New Mexico",
+"New Mexico State","North Texas","Northwestern","Notre Dame","Ohio","Ohio State","Oklahoma","Oklahoma State",
+"Oregon","Oregon State","Penn State","Pitt","Purdue","Rice","Rutgers","San Diego State","SMU","South Alabama",
+"South Carolina","Southern Miss","Stanford","Syracuse","TCU","Temple","Tennessee","Texas","Texas A&M",
+"Texas State","Texas Tech","UTSA","UCF","UCLA","UConn","UAB","UNLV","USC","Utah","Utah State","Vanderbilt",
+"Virginia","Virginia Tech","Wake Forest","Washington","Washington State","West Virginia","Wyoming","Tulane",
+"Tulsa","Toledo","Troy","Ulm","SMU","Boise State","Oklahoma State"
+];
 
-    // Populate dropdowns
-    const t1 = document.getElementById("team1"), t2 = document.getElementById("team2");
-    TEAMS.forEach(t=>{
-      t1.add(new Option(t,t));
-      t2.add(new Option(t,t));
-    });
+// ensure unique & filter duplicates
+const teams = [...new Set(TEAMS)].sort((a,b)=>a.localeCompare(b));
 
-    function createGame(){
-      if(t1.value===t2.value) return alert("Pick two different teams!");
-      const game = {
-        id:Date.now(),
-        home:t1.value,
-        away:t2.value,
-        homeScore:0, awayScore:0,
-        status:"Not Started"
-      };
-      games.push(game);
-      renderGames();
+/* Simple demo roster generator: for each team create placeholder players (QB,RB,WR,K) */
+function makeRoster(team){
+  const short = team.split(" ")[0].replace(/[^A-Za-z]/g,'').substring(0,4).toUpperCase();
+  return {
+    qb: `${short} QB ${Math.floor(Math.random()*90)+10}`,
+    rb: `${short} RB ${Math.floor(Math.random()*90)+10}`,
+    wr: `${short} WR ${Math.floor(Math.random()*90)+10}`,
+    k: `${short} K ${Math.floor(Math.random()*90)+10}`
+  };
+}
+
+/* UI elements */
+const teamA = document.getElementById('teamA'), teamB = document.getElementById('teamB');
+const createBtn = document.getElementById('createBtn'), matchList = document.getElementById('matchList');
+const overlay = document.getElementById('overlay'), panel = document.getElementById('panel');
+const playLog = document.getElementById('playLog'), g_score = document.getElementById('g_score');
+const g_homeName = document.getElementById('g_homeName'), g_awayName = document.getElementById('g_awayName');
+const g_clock = document.getElementById('g_clock'), g_status = document.getElementById('g_status');
+const g_possession = document.getElementById('g_possession'), g_winProb = document.getElementById('g_winProb');
+const oddsFill = document.getElementById('oddsFill'), oddsText = document.getElementById('oddsText');
+const driveSummary = document.getElementById('driveSummary'), rosterList = document.getElementById('rosterList');
+const speedSelect = document.getElementById('speed');
+const pauseBtn = document.getElementById('pauseBtn'), closeBtn = document.getElementById('closeBtn');
+const fontDefault = document.getElementById('fontDefault'), fontVast = document.getElementById('fontVast'), fontEpsn = document.getElementById('fontEpsn');
+const addQuick = document.getElementById('addQuick');
+
+let matches = []; // active matches
+let simState = null; // current sim running in overlay
+
+/* populate dropdowns */
+teams.forEach(t=>{
+  const o1 = new Option(t,t), o2 = new Option(t,t);
+  teamA.add(o1); teamB.add(o2);
+});
+teamB.selectedIndex = 1;
+
+/* create a matchup card */
+createBtn.addEventListener('click',()=>{
+  const a = teamA.value, b = teamB.value;
+  if(!a || !b) return alert('Pick two teams');
+  if(a===b) return alert('Select two different teams');
+  const homeLeft = document.getElementById('homeCheckbox')?.checked ?? true;
+  const match = {
+    id: Date.now() + Math.random(),
+    home: a,
+    away: b,
+    homeRoster: makeRoster(a),
+    awayRoster: makeRoster(b),
+    homeScore: 0,
+    awayScore: 0,
+    status: 'Not started',
+    plays: []
+  };
+  matches.unshift(match);
+  renderMatches();
+});
+
+/* optional: quick rosters to refresh (demo) */
+addQuick.addEventListener('click',()=>{
+  matches.forEach(m=>{
+    m.homeRoster = makeRoster(m.home);
+    m.awayRoster = makeRoster(m.away);
+  });
+  renderMatches();
+});
+
+function renderMatches(){
+  matchList.innerHTML = '';
+  if(matches.length===0) matchList.innerHTML = '<div class="small muted">No active matchups — create one above.</div>';
+  matches.forEach(m=>{
+    const el = document.createElement('div');
+    el.className = 'matchCard';
+    el.innerHTML = `<div><strong>${m.home}</strong> vs <strong>${m.away}</strong><div class="small muted">${m.status}</div></div><div style="text-align:right"><div class="scoreBig" style="font-size:20px">${m.homeScore} - ${m.awayScore}</div><div class="small muted">Click to open</div></div>`;
+    el.onclick = ()=>openGamecast(m);
+    matchList.appendChild(el);
+  });
+}
+
+/* --- Simulation engine --- 
+   - Simulated game: 5 minutes (300s) of in-game clock.
+   - User may select speed:
+      fast  -> condense to ~15s total runtime
+      medium -> ~60s total
+      long -> ~900s (15min) total
+   - We'll compute tick interval so that the entire simulated 300-sec game is played across chosen real-time.
+   - At each tick: possible play/drives; scoring events produce play-by-play with proper football scoring.
+*/
+
+function openGamecast(match){
+  // if another sim active, stop it
+  stopSim();
+  simState = createSimState(match);
+  // render header
+  g_homeName.innerText = match.home;
+  g_awayName.innerText = match.away;
+  document.getElementById('g_comp').innerText = `College Football • ${match.home} vs ${match.away}`;
+  g_score.innerText = `${match.homeScore} - ${match.awayScore}`;
+  g_status.innerText = 'Q1';
+  g_clock.innerText = formatClock(simState.clock);
+  g_possession.innerText = simState.possession === 'home' ? match.home : match.away;
+  g_winProb.innerText = '50%';
+  oddsFill.style.width = '50%';
+  oddsText.innerText = `${match.home} 50% • ${match.away} 50%`;
+  playLog.innerHTML = '';
+  driveSummary.innerHTML = 'No drives yet';
+  rosterList.innerHTML = `<div><strong>Home</strong><br>${match.homeRoster.qb} / ${match.homeRoster.rb} / ${match.homeRoster.wr} / ${match.homeRoster.k}</div><div style="height:8px"></div><div><strong>Away</strong><br>${match.awayRoster.qb} / ${match.awayRoster.rb} / ${match.awayRoster.wr} / ${match.awayRoster.k}</div>`;
+  overlay.style.display = 'flex';
+  // start simulation
+  startSim(simState);
+}
+
+/* Create the state object for simulation */
+function createSimState(match){
+  return {
+    match,
+    clock: 300, // seconds (5:00)
+    quarter: 1,
+    possession: Math.random()>0.5 ? 'home' : 'away',
+    homeScore: match.homeScore,
+    awayScore: match.awayScore,
+    driveLog: [],
+    running: false,
+    tickIntervalId: null,
+    paused: false
+  };
+}
+
+function startSim(state){
+  const speed = speedSelect.value;
+  // map: desired real total durations (ms)
+  const totalRealMs = speed === 'fast' ? 15000 : speed === 'medium' ? 60000 : 15 * 60 * 1000;
+  const ticks = 40; // number of simulation ticks we run (drives / plays) — more ticks = more granular events
+  const tickMs = Math.max(200, Math.floor(totalRealMs / ticks)); // ensure reasonable lower bound
+  const secPerTick = Math.ceil(300 / ticks); // how many in-game seconds pass per tick
+  state.running = true;
+  state.paused = false;
+
+  // small initial drive message
+  addPlay(state, `${getTeamLabel(state,'pos')} wins the toss and receives.`, false);
+
+  // main tick
+  state.tickIntervalId = setInterval(()=>{
+    if(state.paused) return;
+    if(state.clock <= 0){
+      finishGame(state);
+      return;
     }
 
-    function renderGames(){
-      gamesList.innerHTML="";
-      games.forEach(g=>{
-        const card=document.createElement("div");
-        card.className="card";
-        card.innerHTML=`<h3>${g.home} vs ${g.away}</h3><div>Status: ${g.status}</div>`;
-        card.onclick=()=>openGamecast(g);
-        gamesList.appendChild(card);
-      });
+    // advance clock
+    state.clock = Math.max(0, state.clock - secPerTick);
+    updateClockUI(state);
+
+    // simulate an event or drive
+    simulateEvent(state);
+
+    // if quarter boundaries reached (for a short demo we won't simulate 4 quarters; just update Q based on clock)
+    const elapsed = 300 - state.clock;
+    const newQuarter = Math.min(4, Math.floor(elapsed / 75) + 1); // 75s per quarter for 5-min game
+    if(newQuarter !== state.quarter){
+      state.quarter = newQuarter;
+      addPlay(state, `Start of Q${state.quarter}`, true);
+      g_status.innerText = `Q${state.quarter}`;
     }
 
-    // Gamecast simulation
-    let simInterval;
-    function openGamecast(game){
-      document.getElementById("gamecast").style.display="flex";
-      document.getElementById("gcTitle").innerText=`${game.home} vs ${game.away}`;
-      document.getElementById("gcHome").innerText=game.home;
-      document.getElementById("gcAway").innerText=game.away;
-      document.getElementById("gcScore").innerText=`${game.homeScore} - ${game.awayScore}`;
-      document.getElementById("gcLog").innerHTML="";
-      game.status="LIVE";
-      startSim(game);
-    }
+    // update UI
+    refreshUI(state);
 
-    function closeGamecast(){
-      clearInterval(simInterval);
-      document.getElementById("gamecast").style.display="none";
-    }
+    // small chance to change possession (simulating punt/turnover)
+    if(Math.random() < 0.12) state.possession = (state.possession === 'home' ? 'away' : 'home');
 
-    function startSim(game){
-      let time=300; // 5 min = 300 sec
-      simInterval=setInterval(()=>{
-        if(time<=0){
-          clearInterval(simInterval);
-          game.status="Final";
-          document.getElementById("gcStatus").innerText="Final";
-          renderGames();
-          return;
-        }
-        // update clock
-        time-=20; // each tick = 20s
-        const mins=Math.floor(time/60), secs=(time%60).toString().padStart(2,"0");
-        document.getElementById("gcClock").innerText=`${mins}:${secs}`;
+    // stop if time done
+    if(state.clock <= 0) finishGame(state);
+  }, tickMs);
 
-        // random event
-        const log=document.getElementById("gcLog");
-        if(Math.random()>0.5){
-          const team=Math.random()>0.5?"home":"away";
-          const pts=[2,3][Math.floor(Math.random()*2)];
-          if(team==="home") game.homeScore+=pts;
-          else game.awayScore+=pts;
-          const msg=`${team==="home"?game.home:game.away} scores ${pts}!`;
-          log.innerHTML=`<div>${msg}</div>`+log.innerHTML;
-        } else {
-          const events=["Turnover","Foul","Missed Shot","Timeout"];
-          const msg=(Math.random()>0.5?game.home:game.away)+" — "+events[Math.floor(Math.random()*events.length)];
-          log.innerHTML=`<div class="muted">${msg}</div>`+log.innerHTML;
-        }
-        document.getElementById("gcScore").innerText=`${game.homeScore} - ${game.awayScore}`;
-      },1500); // 15 seconds total → 10 ticks
+  // wire pause/close
+  pauseBtn.onclick = ()=>{
+    state.paused = !state.paused;
+    pauseBtn.innerText = state.paused ? 'Resume' : 'Pause';
+  };
+  closeBtn.onclick = ()=>{
+    stopSim();
+    overlay.style.display = 'none';
+  };
+}
+
+function stopSim(){
+  if(!simState) return;
+  if(simState.tickIntervalId) clearInterval(simState.tickIntervalId);
+  simState = null;
+  pauseBtn.innerText = 'Pause';
+}
+
+/* when clock reaches 0 */
+function finishGame(state){
+  if(state.tickIntervalId) clearInterval(state.tickIntervalId);
+  state.running = false;
+  state.match.homeScore = state.homeScore;
+  state.match.awayScore = state.awayScore;
+  state.match.status = 'Final';
+  addPlay(state, `<strong>Final:</strong> ${state.match.home} ${state.homeScore} - ${state.match.away} ${state.awayScore}`, true);
+  renderMatches();
+}
+
+/* update clock UI */
+function updateClockUI(state){
+  g_clock.innerText = formatClock(state.clock);
+  g_possession.innerText = state.possession === 'home' ? state.match.home : state.match.away;
+}
+
+/* format mm:ss */
+function formatClock(sec){
+  const m = Math.floor(sec/60), s = sec%60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+/* simulate one event: we pick from drive outcome distribution */
+function simulateEvent(state){
+  // probabilities tuned for short simulation: TDs somewhat rare, FGs a bit rarer
+  const p = Math.random();
+  const offense = state.possession === 'home' ? 'home' : 'away';
+  const teamName = offense === 'home' ? state.match.home : state.match.away;
+  const roster = offense === 'home' ? state.match.homeRoster : state.match.awayRoster;
+  let text = '';
+  if(p < 0.15){
+    // Touchdown — decide run or pass
+    const yards = Math.floor(Math.random()*60)+1;
+    const pass = Math.random() > 0.45;
+    const scorer = pass ? roster.wr : roster.rb;
+    const qb = roster.qb;
+    if(pass){
+      state[offense + 'Score'] += 6;
+      // XP attempt
+      const xpGood = Math.random() > 0.06;
+      state[offense + 'Score'] += xpGood ? 1 : 0;
+      text = `${formatClock(state.clock)} Q${state.quarter} — ${teamName} ${qb} ${yards}-yd TD pass to ${scorer} (${xpGood ? 'XP good' : 'XP failed'})`;
+    } else {
+      state[offense + 'Score'] += 6;
+      const xpGood = Math.random() > 0.06;
+      state[offense + 'Score'] += xpGood ? 1 : 0;
+      text = `${formatClock(state.clock)} Q${state.quarter} — ${teamName} ${roster.rb} ${yards}-yd TD run (${xpGood ? 'XP good' : 'XP failed'})`;
     }
-  </script>
+    // record drive
+    state.driveLog.push({type:'TD',desc:text});
+    addPlay(state, text, true);
+  } else if(p < 0.28){
+    // Field goal attempt
+    const yards = Math.floor(Math.random()*48)+20;
+    const good = Math.random() > 0.18;
+    if(good){
+      state[offense + 'Score'] += 3;
+      text = `${formatClock(state.clock)} Q${state.quarter} — ${teamName} ${roster.k} ${yards}-yd FG good`;
+      state.driveLog.push({type:'FG',desc:text});
+    } else {
+      text = `${formatClock(state.clock)} Q${state.quarter} — ${teamName} ${roster.k} ${yards}-yd FG is no good`;
+      state.driveLog.push({type:'FG_MISS',desc:text});
+    }
+    addPlay(state, text, true);
+  } else if(p < 0.38){
+    // Safety!
+    state[offense + 'Score'] += 2;
+    text = `${formatClock(state.clock)} Q${state.quarter} — Safety on ${teamName}! 2 points awarded`;
+    addPlay(state, text, true);
+    state.driveLog.push({type:'SAF',desc:text});
+  } else if(p < 0.7){
+    // Big play (long gain but no score) or turnover
+    const events = [
+      `${teamName} — ${roster.rb} makes a big gain for ${Math.floor(Math.random()*40)+10} yards`,
+      `${teamName} — ${roster.wr} hauled in a pass for ${Math.floor(Math.random()*30)+6} yards`,
+      `${teamName} — QB ${roster.qb} sacked for ${Math.floor(Math.random()*10)+3} yards`,
+      `${teamName} — Punt — change of possession`
+    ];
+    const ev = events[Math.floor(Math.random()*events.length)];
+    addPlay(state, `${formatClock(state.clock)} Q${state.quarter} — ${ev}`, false);
+    // if punt, flip possession
+    if(ev.includes('Punt')) state.possession = (state.possession==='home') ? 'away' : 'home';
+  } else {
+    // turnover: interception or fumble — flip possession, possible return TD rare
+    const turnoverType = Math.random() > 0.5 ? 'Interception' : 'Fumble';
+    const retTD = Math.random() < 0.06;
+    const other = (state.possession==='home') ? 'away' : 'home';
+    const otherTeam = other==='home' ? state.match.home : state.match.away;
+    const otherRoster = other==='home' ? state.match.homeRoster : state.match.awayRoster;
+    if(retTD){
+      // return TD for other team
+      state[other + 'Score'] += 6;
+      const xp = Math.random() > 0.06;
+      state[other + 'Score'] += xp ? 1 : 0;
+      const txt = `${formatClock(state.clock)} Q${state.quarter} — ${teamName} ${turnoverType} returned ${Math.floor(Math.random()*70)+10} yards by ${otherRoster.rb} for a TD (${xp ? 'XP good' : 'XP failed'})`;
+      addPlay(state, txt, true);
+    } else {
+      addPlay(state, `${formatClock(state.clock)} Q${state.quarter} — ${teamName} ${turnoverType}! Turnover, possession to ${otherTeam}`, false);
+      // flip possession
+      state.possession = other;
+    }
+  }
+}
+
+/* add play to UI and state */
+function addPlay(state, text, highlight){
+  const node = document.createElement('div');
+  node.className = 'play';
+  node.innerHTML = highlight ? `<strong>${text}</strong>` : `${text}`;
+  const list = playLog;
+  list.insertBefore(node, list.firstChild);
+  // also log to match
+  state.match.plays.unshift({time: state.clock, text});
+  // keep driveSummary short
+  const recentDrives = state.driveLog.slice(-6).map(d=>`${d.type}: ${d.desc}`);
+  driveSummary.innerHTML = recentDrives.length ? recentDrives.join('<br>') : 'No drives yet';
+}
+
+/* refresh UI elements (score, odds, etc) */
+function refreshUI(state){
+  state.match.homeScore = state.homeScore;
+  state.match.awayScore = state.awayScore;
+  // but state.homeScore and awayScore track scores in state
+  const home = state.match.home, away = state.match.away;
+  // show scores from state
+  g_score.innerText = `${state.homeScore} - ${state.awayScore}`;
+  // win probability (simple model: based on score diff + random strength)
+  const base = 50 + (state.homeScore - state.awayScore) * 7; // each point shifts 7%
+  // clamp
+  const homeProb = Math.max(2, Math.min(98, Math.round(base)));
+  const awayProb = 100 - homeProb;
+  g_winProb.innerText = `${homeProb}%`;
+  oddsFill.style.width = `${homeProb}%`;
+  oddsText.innerText = `${home} ${homeProb}% • ${away} ${awayProb}%`;
+  // update match card status if present
+  state.match.status = `${state.homeScore} - ${state.awayScore} • ${formatClock(state.clock)}`;
+  renderMatches();
+}
+
+/* helper to get label for possession */
+function getTeamLabel(state, what){
+  if(what==='pos') return state.possession === 'home' ? state.match.home : state.match.away;
+  return '';
+}
+
+/* format mm:ss for play text */
+function formatClock(sec){
+  const m = Math.floor(sec/60), s = sec % 60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+/* UI font switching (demo uses system fonts, replace with real webfonts if available) */
+fontDefault.onclick = ()=> panel.classList.remove('font-vast','font-espn');
+fontVast.onclick = ()=> { panel.classList.add('font-vast'); panel.classList.remove('font-espn'); };
+fontEpsn.onclick = ()=> { panel.classList.add('font-espn'); panel.classList.remove('font-vast'); };
+
+/* initial render */
+renderMatches();
+
+/* Small safety: close overlay on background click */
+overlay.addEventListener('click', (e)=>{
+  if(e.target === overlay){
+    stopSim();
+    overlay.style.display = 'none';
+  }
+});
+</script>
 </body>
 </html>
