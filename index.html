@@ -1,5 +1,57 @@
-<!-- Additional Features -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>College Football Gamecast + Playoffs + Rank Maker</title>
+<link href="https://fonts.googleapis.com/css2?family=Vast+Shadow&display=swap" rel="stylesheet">
+<style>
+body { font-family: Arial, sans-serif; background:#121212; color:#eee; margin:0; }
+header { background:#cc0000; color:white; padding:15px; text-align:center; font-size:26px; font-weight:bold; }
+.container { display:flex; flex-wrap:wrap; padding:20px; gap:20px; }
+.games, .gamecast { flex:1; background:#1e1e1e; border-radius:8px; padding:20px; box-shadow:0 3px 8px rgba(0,0,0,0.4); }
+select, button, input { padding:6px; margin:5px 0; border-radius:4px; border:none; }
+button { background:#cc0000; color:white; cursor:pointer; font-weight:bold; }
+button:hover { background:#e63939; }
+.scoreboard { font-family:'Vast Shadow', cursive; font-size:34px; font-weight:bold; margin:10px 0; text-align:center; color:#fff; }
+.quarter { margin-top:10px; font-weight:bold; color:#ffcc00; }
+.plays { max-height:350px; overflow-y:auto; background:#222; border:1px solid #333; border-radius:6px; padding:8px; font-size:14px; }
+.odds { margin-top:10px; text-align:center; }
+.bar-container { background:#333; border-radius:5px; overflow:hidden; margin-top:8px; height:18px; width:100%; }
+.bar { height:100%; transition:width 0.5s ease; }
+.bar.team1 { background:#cc0000; float:left; }
+.bar.team2 { background:#4444ff; float:right; }
+</style>
+</head>
+<body>
+
+<header>College Football Gamecast</header>
+
+<div class="container">
+  <!-- Gamecast -->
+  <div class="games">
+    <h2>Pick a Game</h2>
+    <select id="team1"></select>
+    <select id="team2"></select>
+    <button onclick="startGame()">Start Game</button>
+    <button onclick="pauseGame()">Pause</button>
+    <button onclick="resumeGame()">Resume</button>
+    <button onclick="resetGame()">Reset</button>
+  </div>
+
+  <div class="gamecast">
+    <h2 id="matchup">No Game Selected</h2>
+    <div id="scoreboard" class="scoreboard"></div>
+    <div id="odds" class="odds"></div>
+    <div class="bar-container">
+      <div id="barTeam1" class="bar team1" style="width:50%"></div>
+      <div id="barTeam2" class="bar team2" style="width:50%"></div>
+    </div>
+    <div class="plays" id="plays"></div>
+  </div>
+</div>
+
 <div class="container" style="margin-top:20px;">
+  <!-- Playoff Builder -->
   <div class="games">
     <h2>CFB Playoff Builder</h2>
     <p>Select 8 Teams:</p>
@@ -8,6 +60,7 @@
     <div id="playoffBracket"></div>
   </div>
 
+  <!-- Rank Maker -->
   <div class="gamecast">
     <h2>CFB Rank Maker</h2>
     <div id="rankMaker"></div>
@@ -17,81 +70,131 @@
 </div>
 
 <script>
-// --- Playoff Builder ---
-const playoffSlots = 8;
-const playoffContainer = document.getElementById("playoffTeams");
-for(let i=1;i<=playoffSlots;i++){
-  let sel = document.createElement("select");
-  sel.id="playoff"+i;
-  teams.forEach(t=>sel.add(new Option(t,t)));
-  playoffContainer.appendChild(sel);
-  playoffContainer.appendChild(document.createElement("br"));
+/* ------------------ TEAM LIST ------------------ */
+const teams = [
+"Alabama","Georgia","Ohio State","Michigan","Texas","Oklahoma",
+"Clemson","Notre Dame","LSU","Florida State","Penn State","USC",
+"Tennessee","Oregon","Washington","Texas A&M","Florida","Auburn",
+"Wisconsin","Iowa","Ole Miss","Kentucky","Miami","North Carolina",
+"Utah","TCU","Baylor","Mississippi State","Arkansas","Kansas State",
+"Oklahoma State","Nebraska","South Carolina","Louisville","Missouri",
+"NC State","Virginia Tech","Maryland","UCF","Boise State","West Virginia",
+"Pittsburgh","Minnesota","Michigan State","Duke","Colorado","Colorado State",
+"Texas Tech","Houston","Cincinnati","BYU","Arizona","Arizona State","Stanford",
+"California","Northwestern","Illinois","Purdue","Indiana","Rutgers","Syracuse",
+"Wake Forest","Boston College","SMU","Tulane","Memphis"
+];
+
+/* ------------------ GAMECAST ------------------ */
+teams.forEach(t=>{
+  document.getElementById("team1").add(new Option(t,t));
+  document.getElementById("team2").add(new Option(t,t));
+});
+
+let gameInterval, paused=false;
+let team1, team2, score1, score2, timeRemaining, quarter;
+
+function startGame(){
+  clearInterval(gameInterval);
+  team1=document.getElementById("team1").value;
+  team2=document.getElementById("team2").value;
+  if(team1===team2) return alert("Pick different teams!");
+
+  score1=0; score2=0; timeRemaining=900; quarter=1;
+  document.getElementById("matchup").innerText=`${team1} vs ${team2}`;
+  document.getElementById("plays").innerHTML="";
+  updateScoreboard();
+  gameInterval=setInterval(simulatePlay,2000);
 }
 
-function buildPlayoff(){
-  const selected = [];
-  for(let i=1;i<=playoffSlots;i++){
-    selected.push(document.getElementById("playoff"+i).value);
+function simulatePlay(){
+  if(timeRemaining<=0){
+    if(quarter<4){ quarter++; timeRemaining=900;
+      document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`;
+    } else { clearInterval(gameInterval);
+      document.getElementById("plays").innerHTML+=`<p><b>FINAL:</b> ${team1} ${score1} - ${team2} ${score2}</p>`;
+      return;
+    }
   }
-  const rounds=["Quarterfinals","Semifinals","Final"];
-  let winners=selected.slice();
-  let bracketHTML="";
+
+  timeRemaining-=Math.floor(Math.random()*40+20);
+  if(timeRemaining<0) timeRemaining=0;
+
+  let outcome=Math.random(), playText="", pts=0, scoringTeam;
+
+  if(outcome<0.45){ playText="Drive stalls. Punt."; }
+  else if(outcome<0.65){
+    scoringTeam=Math.random()>0.5?team1:team2;
+    pts=3;
+    if(Math.random()<0.15) playText=`${scoringTeam} - FG MISSED.`;
+    else playText=`${scoringTeam} - FG GOOD.`;
+  }
+  else if(outcome<0.9){
+    scoringTeam=Math.random()>0.5?team1:team2;
+    let type = Math.random()<0.5 ? "run" : "pass";
+    let yards = Math.floor(Math.random()*40+10);
+    pts=6; playText=`${scoringTeam} - ${yards} yd ${type} Touchdown!`;
+    if(Math.random()>0.05){ pts+=1; playText+=" XP GOOD."; } else playText+=" XP NO GOOD.";
+  }
+  else if(outcome<0.95){ playText="Interception thrown!"; }
+  else if(outcome<0.98){ playText="Fumble recovered!"; }
+  else {
+    if(Math.random()<0.3){ scoringTeam=Math.random()>0.5?team1:team2; pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`; }
+    else playText="Turnover on downs.";
+  }
+
+  if(pts>0){
+    if(scoringTeam===team1) score1+=pts; else score2+=pts;
+  }
+
+  document.getElementById("plays").innerHTML+=`<p>${formatTime()} Q${quarter} - ${playText}</p>`;
+  updateScoreboard();
+}
+
+function updateScoreboard(){
+  document.getElementById("scoreboard").innerText=`${team1} ${score1} - ${team2} ${score2} | Q${quarter} ${formatTime()}`;
+  updateOdds();
+}
+
+function formatTime(){ let min=Math.floor(timeRemaining/60), sec=timeRemaining%60; return `${min}:${sec<10?"0":""}${sec}`; }
+
+function updateOdds(){
+  let diff=score1-score2, prob=50+diff*2-(4-quarter)*2; if(prob<1) prob=1; if(prob>99) prob=99;
+  document.getElementById("odds").innerText=`Win Probability: ${team1} ${prob}% | ${team2} ${100-prob}%`;
+  document.getElementById("barTeam1").style.width=prob+"%";
+  document.getElementById("barTeam2").style.width=(100-prob)+"%";
+}
+
+/* ------------------ Pause/Resume/Reset ------------------ */
+function pauseGame(){ if(!paused){ clearInterval(gameInterval); paused=true; } }
+function resumeGame(){ if(paused){ gameInterval=setInterval(simulatePlay,2000); paused=false; } }
+function resetGame(){ clearInterval(gameInterval); document.getElementById("plays").innerHTML=""; document.getElementById("matchup").innerText="No Game Selected"; document.getElementById("scoreboard").innerText=""; document.getElementById("odds").innerText=""; document.getElementById("barTeam1").style.width="50%"; document.getElementById("barTeam2").style.width="50%"; }
+
+/* ------------------ AUTO SCROLL ------------------ */
+const playsDiv=document.getElementById("plays"); const observer=new MutationObserver(()=>{ playsDiv.scrollTop=playsDiv.scrollHeight; }); observer.observe(playsDiv,{childList:true});
+
+/* ------------------ PLAYOFF BUILDER ------------------ */
+const playoffSlots=8; const playoffContainer=document.getElementById("playoffTeams");
+for(let i=1;i<=playoffSlots;i++){ let sel=document.createElement("select"); sel.id="playoff"+i; teams.forEach(t=>sel.add(new Option(t,t))); playoffContainer.appendChild(sel); playoffContainer.appendChild(document.createElement("br")); }
+
+function buildPlayoff(){
+  const selected=[]; for(let i=1;i<=playoffSlots;i++) selected.push(document.getElementById("playoff"+i).value);
+  let rounds=["Quarterfinals","Semifinals","Final"], winners=selected.slice(), bracketHTML="";
   rounds.forEach((round, idx)=>{
     bracketHTML+=`<h3>${round}</h3>`;
-    let nextWinners=[];
     for(let i=0;i<winners.length;i+=2){
-      let t1=winners[i], t2=winners[i+1];
-      let score1=Math.floor(Math.random()*40);
-      let score2=Math.floor(Math.random()*40);
-      let winner = score1>=score2?t1:t2;
-      bracketHTML+=`<p>${t1} ${score1} - ${t2} ${score2} → <b>${winner}</b></p>`;
-      nextWinners.push(winner);
-    }
-    winners=nextWinners;
+      let t1=winners[i], t2=winners[i+1]; let score1=Math.floor(Math.random()*40); let score2=Math.floor(Math.random()*40);
+      let winner = score1>=score2?t1:t2; bracketHTML+=`<p>${t1} ${score1} - ${t2} ${score2} → <b>${winner}</b></p>`; winners[i/2]=winner;
+    } winners=winners.slice(0,winners.length/2);
   });
   document.getElementById("playoffBracket").innerHTML=bracketHTML;
 }
 
-// --- CFB Rank Maker ---
-const rankMakerDiv = document.getElementById("rankMaker");
-teams.forEach(t=>{
-  let input = document.createElement("input");
-  input.type="number";
-  input.value=1;
-  input.min=1;
-  input.max=100;
-  input.id="rank_"+t.replace(/\s/g,"_");
-  rankMakerDiv.appendChild(document.createTextNode(t+" "));
-  rankMakerDiv.appendChild(input);
-  rankMakerDiv.appendChild(document.createElement("br"));
-});
+/* ------------------ RANK MAKER ------------------ */
+const rankMakerDiv=document.getElementById("rankMaker");
+teams.forEach(t=>{ let input=document.createElement("input"); input.type="number"; input.value=1; input.min=1; input.max=100; input.id="rank_"+t.replace(/\s/g,"_"); rankMakerDiv.appendChild(document.createTextNode(t+" ")); rankMakerDiv.appendChild(input); rankMakerDiv.appendChild(document.createElement("br")); });
 
-function showRanks(){
-  const ranks=[];
-  teams.forEach(t=>{
-    let val = parseInt(document.getElementById("rank_"+t.replace(/\s/g,"_")).value);
-    ranks.push({team:t, rank:val});
-  });
-  ranks.sort((a,b)=>a.rank-b.rank);
-  let listHTML="";
-  ranks.forEach(r=>{ listHTML+=`<li>${r.rank}: ${r.team}</li>`; });
-  document.getElementById("rankList").innerHTML=listHTML;
-}
-
-// --- Quality of Life Improvements ---
-let paused=false;
-const originalInterval = gameInterval;
-function pauseGame(){
-  if(!paused){ clearInterval(gameInterval); paused=true; }
-}
-function resumeGame(){
-  if(paused){ gameInterval=setInterval(simulatePlay,2000); paused=false; }
-}
-
-// Auto-scroll gamecast
-const playsDiv = document.getElementById("plays");
-const observer = new MutationObserver(()=>{ playsDiv.scrollTop=playsDiv.scrollHeight; });
-observer.observe(playsDiv,{childList:true});
+function showRanks(){ const ranks=[]; teams.forEach(t=>{ let val=parseInt(document.getElementById("rank_"+t.replace(/\s/g,"_")).value); ranks.push({team:t, rank:val}); }); ranks.sort((a,b)=>a.rank-b.rank); let listHTML=""; ranks.forEach(r=>{ listHTML+=`<li>${r.rank}: ${r.team}</li>`; }); document.getElementById("rankList").innerHTML=listHTML; }
 </script>
-
+</body>
 </html>
