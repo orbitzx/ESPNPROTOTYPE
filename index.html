@@ -38,7 +38,6 @@ button:hover { background:#e63939; }
 </div>
 
 <div class="container">
-  <!-- Game Selection -->
   <div class="games tab-content" id="game">
     <h2>Select Teams</h2>
     <select id="team1"></select>
@@ -49,7 +48,6 @@ button:hover { background:#e63939; }
     <button onclick="resetGame()">Reset</button>
   </div>
 
-  <!-- Gamecast Output -->
   <div class="gamecast tab-content" id="gamecast">
     <h2 id="matchup">No Game Selected</h2>
     <div id="scoreboard" class="scoreboard"></div>
@@ -61,7 +59,6 @@ button:hover { background:#e63939; }
     <div class="plays" id="plays"></div>
   </div>
 
-  <!-- History -->
   <div class="history tab-content" id="historyTab">
     <h2>Game History</h2>
     <ul id="gameHistory"></ul>
@@ -69,7 +66,6 @@ button:hover { background:#e63939; }
 </div>
 
 <div class="container">
-  <!-- Playoff Builder -->
   <div class="games tab-content" id="playoff">
     <h2>CFB Playoff Builder</h2>
     <p>Select 8 Teams:</p>
@@ -78,7 +74,6 @@ button:hover { background:#e63939; }
     <div id="playoffBracket"></div>
   </div>
 
-  <!-- Rank Maker -->
   <div class="gamecast tab-content" id="rank">
     <h2>CFB Rank Maker</h2>
     <div id="rankMaker"></div>
@@ -88,14 +83,14 @@ button:hover { background:#e63939; }
 </div>
 
 <script>
-/* ------------------ TAB CONTROL ------------------ */
+/* TAB CONTROL */
 function showTab(id){
   document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 showTab('game');
 
-/* ------------------ TEAMS ------------------ */
+/* TEAMS */
 const teams = [
 "Alabama","Georgia","Ohio State","Michigan","Texas","Oklahoma",
 "Clemson","Notre Dame","LSU","Florida State","Penn State","USC",
@@ -114,7 +109,7 @@ teams.forEach(t=>{
   document.getElementById("team2").add(new Option(t,t));
 });
 
-/* ------------------ GAMECAST ------------------ */
+/* GAMECAST */
 let gameInterval, paused=false, history=[];
 let team1, team2, score1, score2, timeRemaining, quarter, playsThisQuarter;
 
@@ -127,19 +122,19 @@ function startGame(){
   team2=document.getElementById("team2").value;
   if(team1===team2) return alert("Pick different teams!");
 
-  score1=0; score2=0; timeRemaining=900; quarter=1; playsThisQuarter=0;
+  score1=0; score2=0; timeRemaining=300; quarter=1; playsThisQuarter=0;
   document.getElementById("matchup").innerText=`${team1} vs ${team2}`;
   document.getElementById("plays").innerHTML="";
   updateScoreboard();
 
-  gameInterval=setInterval(simulatePlay,500);
+  gameInterval=setInterval(simulatePlay,300);
 }
 
 function simulatePlay(){
   if(paused) return;
 
   if(timeRemaining<=0){
-    if(quarter<4){ quarter++; timeRemaining=900; playsThisQuarter=0;
+    if(quarter<4){ quarter++; timeRemaining=300; playsThisQuarter=0;
       document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`;
     } else {
       clearInterval(gameInterval);
@@ -150,24 +145,15 @@ function simulatePlay(){
     }
   }
 
-  timeRemaining-=Math.floor(Math.random()*20+10);
+  timeRemaining-=Math.floor(Math.random()*15+5);
   if(timeRemaining<0) timeRemaining=0;
 
-  if(playsThisQuarter>=6) return; // cap scoring per quarter
+  if(playsThisQuarter>=6) return;
   let outcome=Math.random(), playText="", pts=0, scoringTeam;
 
   if(outcome<0.5){ playText="Drive stalls. Punt."; }
-  else if(outcome<0.7){
-    scoringTeam=Math.random()>0.5?team1:team2;
-    pts=3; playText=`${scoringTeam} - FG ${Math.random()<0.15?"MISSED":"GOOD"}.`;
-  }
-  else if(outcome<0.9){
-    scoringTeam=Math.random()>0.5?team1:team2;
-    let type = Math.random()<0.5 ? "run" : "pass";
-    let yards = Math.floor(Math.random()*40+10);
-    pts=6; playText=`${scoringTeam} - ${yards} yd ${type} Touchdown!`;
-    if(Math.random()>0.05){ pts+=1; playText+=" XP GOOD."; } else playText+=" XP NO GOOD.";
-  }
+  else if(outcome<0.7){ scoringTeam=Math.random()>0.5?team1:team2; pts=3; playText=`${scoringTeam} - FG ${Math.random()<0.15?"MISSED":"GOOD"}.`; }
+  else if(outcome<0.9){ scoringTeam=Math.random()>0.5?team1:team2; let type=Math.random()<0.5?"run":"pass"; let yards=Math.floor(Math.random()*40+10); pts=6; playText=`${scoringTeam} - ${yards} yd ${type} Touchdown!`; if(Math.random()>0.05){ pts+=1; playText+=" XP GOOD."; } else playText+=" XP NO GOOD."; }
   else if(outcome<0.95){ playText="Interception thrown!"; }
   else if(outcome<0.98){ playText="Fumble recovered!"; }
   else { if(Math.random()<0.3){ scoringTeam=Math.random()>0.5?team1:team2; pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`; } else playText="Turnover on downs."; }
@@ -211,7 +197,7 @@ const playsDiv=document.getElementById("plays");
 const observer=new MutationObserver(()=>{ playsDiv.scrollTop=playsDiv.scrollHeight; }); 
 observer.observe(playsDiv,{childList:true});
 
-/* ------------------ PLAYOFF BUILDER ------------------ */
+/* PLAYOFF BUILDER */
 const playoffSlots=8; const playoffContainer=document.getElementById("playoffTeams");
 for(let i=1;i<=playoffSlots;i++){ let sel=document.createElement("select"); sel.id="playoff"+i; teams.forEach(t=>sel.add(new Option(t,t))); playoffContainer.appendChild(sel); playoffContainer.appendChild(document.createElement("br")); }
 
@@ -227,23 +213,22 @@ function runPlayoffRound(teamsArr, round){
   function nextGame(){
     if(i>=teamsArr.length) {
       if(teamsArr.length>2) runPlayoffRound(winners, round==="Quarterfinals"?"Semifinals":"Final");
-      else {
-        document.getElementById("playoffBracket").innerHTML+=`<h4>Champion: ${winners[0]}</h4>`;
-      }
+      else { document.getElementById("playoffBracket").innerHTML+=`<h4>Champion: ${winners[0]}</h4>`; return; }
       return;
     }
     const t1=teamsArr[i], t2=teamsArr[i+1]; i+=2;
-    team1=t1; team2=t2; score1=0; score2=0; timeRemaining=900; quarter=1; playsThisQuarter=0;
+    team1=t1; team2=t2; score1=0; score2=0; timeRemaining=300; quarter=1; playsThisQuarter=0;
     document.getElementById("matchup").innerText=`${t1} vs ${t2} (${round})`;
     document.getElementById("plays").innerHTML="";
     paused=false;
+
     const simInterval=setInterval(()=>{
       if(paused) return;
       if(timeRemaining<=0){
-        if(quarter<4){ quarter++; timeRemaining=900; playsThisQuarter=0; document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`; }
+        if(quarter<4){ quarter++; timeRemaining=300; playsThisQuarter=0; document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`; }
         else { clearInterval(simInterval); winners.push(score1>=score2?t1:t2); history.push({t1:t1,t2:t2,s1:score1,s2:score2}); updateHistory(); nextGame(); return; }
       }
-      timeRemaining-=Math.floor(Math.random()*20+10);
+      timeRemaining-=Math.floor(Math.random()*15+5);
       if(timeRemaining<0) timeRemaining=0;
       if(playsThisQuarter>=6) return;
       let outcome=Math.random(), playText="", pts=0, scoringTeam;
@@ -256,14 +241,14 @@ function runPlayoffRound(teamsArr, round){
       if(pts>0){ playsThisQuarter++; if(scoringTeam===t1) score1+=pts; else score2+=pts; }
       document.getElementById("plays").innerHTML+=`<p>${formatTime()} Q${quarter} - ${playText}</p>`;
       updateScoreboard();
-    }, 200);
+    },200);
   }
   showTab("gamecast");
   document.getElementById("playoffBracket").innerHTML+=`<h3>${round}</h3>`;
   nextGame();
 }
 
-/* ------------------ RANK MAKER ------------------ */
+/* RANK MAKER */
 const rankMakerDiv=document.getElementById("rankMaker");
 teams.forEach(t=>{ let input=document.createElement("input"); input.type="number"; input.value=1; input.min=1; input.max=100; input.id="rank_"+t.replace(/\s/g,"_"); rankMakerDiv.appendChild(document.createTextNode(t+" ")); rankMakerDiv.appendChild(input); rankMakerDiv.appendChild(document.createElement("br")); });
 
