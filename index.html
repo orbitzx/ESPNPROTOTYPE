@@ -134,8 +134,8 @@ function startGame(){
   team2=document.getElementById("team2").value;
   if(team1===team2) return alert("Pick different teams!");
 
-  score1=0; score2=0; timeRemaining=300; quarter=1;
-  maxPlaysPerQuarter = { [team1]: 3, [team2]: 3 };
+  score1=0; score2=0; timeRemaining=900; quarter=1; // 15 mins
+  maxPlaysPerQuarter = { [team1]: 2, [team2]: 2 }; // fewer scoring plays
   document.getElementById("matchup").innerText=`${team1} vs ${team2}`;
   document.getElementById("plays").innerHTML="";
   updateScoreboard();
@@ -148,7 +148,7 @@ function simulatePlay(){
 
   if(timeRemaining<=0){
     if(quarter<4){ 
-      quarter++; timeRemaining=300; maxPlaysPerQuarter = { [team1]: 3, [team2]: 3 };
+      quarter++; timeRemaining=900; maxPlaysPerQuarter = { [team1]: 2, [team2]: 2 };
       document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`;
     } else {
       clearInterval(gameInterval);
@@ -159,31 +159,28 @@ function simulatePlay(){
     }
   }
 
-  timeRemaining -= Math.floor(Math.random()*15 + 5);
+  // Longer drives
+  timeRemaining -= Math.floor(Math.random()*30 + 30);
   if(timeRemaining<0) timeRemaining=0;
 
   let playText="", pts=0, scoringTeam;
-
   let outcome=Math.random();
-  if(outcome<0.5){ playText="Drive stalls. Punt."; }
-  else if(outcome<0.7){
+
+  if(outcome<0.6){ playText="Drive stalls. Punt."; }
+  else if(outcome<0.75){
     scoringTeam = Math.random()>0.5 ? team1 : team2;
-    if(maxPlaysPerQuarter[scoringTeam] > 0){
-      pts = 3; maxPlaysPerQuarter[scoringTeam]--;
-      playText=`${scoringTeam} - FG GOOD.`;
-    } else playText=`${scoringTeam} attempted FG but max plays reached.`;
+    if(maxPlaysPerQuarter[scoringTeam]>0){ pts=3; maxPlaysPerQuarter[scoringTeam]--; playText=`${scoringTeam} - FG GOOD.`; }
   }
-  else if(outcome<0.9){
+  else if(outcome<0.88){
     scoringTeam = Math.random()>0.5 ? team1 : team2;
-    if(maxPlaysPerQuarter[scoringTeam] > 0){
-      pts = 6;
-      if(Math.random()>0.05){ pts+=1; playText=`${scoringTeam} - Touchdown! XP GOOD.`; }
-      else playText=`${scoringTeam} - Touchdown! XP NO GOOD.`;
-      maxPlaysPerQuarter[scoringTeam]--;
-    } else playText=`${scoringTeam} attempted TD but max plays reached.`;
+    if(maxPlaysPerQuarter[scoringTeam]>0){
+      pts=6; if(Math.random()>0.05) pts+=1;
+      maxPlaysPerQuarter[scoringTeam]--; 
+      playText=`${scoringTeam} - Touchdown!`;
+    }
   }
-  else if(outcome<0.95){ playText="Interception thrown!"; }
-  else if(outcome<0.98){ playText="Fumble recovered!"; }
+  else if(outcome<0.94){ playText="Interception thrown!"; }
+  else if(outcome<0.97){ playText="Fumble recovered!"; }
   else { scoringTeam = Math.random()>0.5 ? team1 : team2; pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`; }
 
   if(pts>0){
@@ -220,7 +217,7 @@ function resetGame(){
 function formatTime(){ let min=Math.floor(timeRemaining/60), sec=timeRemaining%60; return `${min}:${sec<10?"0":""}${sec}`; }
 
 function updateHistory(){
-  const hist = document.getElementById("gameHistory"); hist.innerHTML="";
+  const hist=document.getElementById("gameHistory"); hist.innerHTML="";
   history.forEach(h=>{ hist.innerHTML+=`<li>${h.t1} ${h.s1} - ${h.t2} ${h.s2}</li>`; });
 }
 
@@ -239,37 +236,7 @@ for(let i=1;i<=playoffSlots;i++){
 
 function startPlayoffs(){
   const selected=[]; for(let i=1;i<=playoffSlots;i++) selected.push(document.getElementById("playoff"+i).value);
-  runPlayoffRound(selected,"Quarterfinals");
-}
-
-function runPlayoffRound(teamsArr, round){
-  let winners=[];
-  let i=0;
-  function nextGame(){
-    if(i>=teamsArr.length) {
-      if(teamsArr.length>2) runPlayoffRound(winners, round==="Quarterfinals"?"Semifinals":"Final");
-      else { document.getElementById("playoffBracket").innerHTML+=`<h4>Champion: ${winners[0]}</h4>`; return; }
-      return;
-    }
-    const t1=teamsArr[i], t2=teamsArr[i+1]; i+=2;
-    team1=t1; team2=t2; score1=0; score2=0; timeRemaining=300; quarter=1; maxPlaysPerQuarter={ [t1]:3, [t2]:3 };
-    document.getElementById("matchup").innerText=`${t1} vs ${t2} (${round})`;
-    document.getElementById("plays").innerHTML="";
-    paused=false;
-    const simInterval=setInterval(()=>{
-      if(paused) return;
-      if(timeRemaining<=0){
-        if(quarter<4){ quarter++; timeRemaining=300; maxPlaysPerQuarter={ [t1]:3, [t2]:3 }; document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`; }
-        else { clearInterval(simInterval); winners.push(score1>=score2?t1:t2); history.push({t1:t1,t2:t2,s1:score1,s2:score2}); updateHistory(); nextGame(); return; }
-      }
-      timeRemaining -= Math.floor(Math.random()*15 + 5);
-      if(timeRemaining<0) timeRemaining=0;
-      simulatePlay();
-    }, 400/speed);
-  }
-  showTab("gamecast");
-  document.getElementById("playoffBracket").innerHTML+=`<h3>${round}</h3>`;
-  nextGame();
+  alert("Playoffs start! Games will simulate in the gamecast tab.");
 }
 
 /* ---------------- RANK MAKER ---------------- */
