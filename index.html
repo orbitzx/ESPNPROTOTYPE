@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CFB Gamecast + Playoffs + Rank + History</title>
+<title>CFB Gamecast + Playoffs + Rank + History + OT</title>
 <link href="https://fonts.googleapis.com/css2?family=Vast+Shadow&display=swap" rel="stylesheet">
 <style>
 body { font-family: Arial, sans-serif; background:#121212; color:#eee; margin:0; }
@@ -152,6 +152,12 @@ function simulatePlay(){
       document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`;
     } else {
       clearInterval(gameInterval);
+      // 5% chance OT if tied
+      if(score1===score2 && Math.random()<0.05){
+        document.getElementById("plays").innerHTML+=`<p><b>Tied game! OVERTIME begins!</b></p>`;
+        startOvertime();
+        return;
+      }
       document.getElementById("plays").innerHTML+=`<p><b>FINAL:</b> ${team1} ${score1} - ${team2} ${score2}</p>`;
       history.push({t1:team1,t2:team2,s1:score1,s2:score2});
       updateHistory();
@@ -161,6 +167,7 @@ function simulatePlay(){
 
   // Longer drives
   timeRemaining -= Math.floor(Math.random()*30 + 30);
+
   if(timeRemaining<0) timeRemaining=0;
 
   let playText="", pts=0, scoringTeam;
@@ -174,7 +181,7 @@ function simulatePlay(){
   else if(outcome<0.88){
     scoringTeam = Math.random()>0.5 ? team1 : team2;
     if(maxPlaysPerQuarter[scoringTeam]>0){
-      pts=6; if(Math.random()>0.05) pts+=1;
+      pts=6; if(Math.random()>0.5) pts+=1;
       maxPlaysPerQuarter[scoringTeam]--; 
       playText=`${scoringTeam} - Touchdown!`;
     }
@@ -190,6 +197,33 @@ function simulatePlay(){
 
   document.getElementById("plays").innerHTML+=`<p>${formatTime()} Q${quarter} - ${playText}</p>`;
   updateScoreboard();
+}
+
+/* ---------------- OVERTIME ---------------- */
+function startOvertime(){
+  let otRound=1;
+  let otScore={ [team1]:0, [team2]:0 };
+
+  function playOT(){
+    [team1, team2].forEach(t=>{
+      let outcome=Math.random();
+      let pts=0;
+      if(outcome<0.6) pts=3; // FG
+      else if(outcome<0.9){ pts=6; if(Math.random()>0.5) pts+=1; } // TD + XP
+      else pts=0; // no score
+      otScore[t]+=pts;
+      document.getElementById("plays").innerHTML+=`<p>OT${otRound} - ${t} scores ${pts} points.</p>`;
+    });
+
+    if(otScore[team1]!==otScore[team2]){
+      score1 += otScore[team1]; score2 += otScore[team2];
+      document.getElementById("plays").innerHTML+=`<p><b>FINAL (OT): ${team1} ${score1} - ${team2} ${score2}</b></p>`;
+      history.push({t1:team1,t2:team2,s1:score1,s2:score2});
+      updateHistory();
+    } else { otRound++; setTimeout(playOT, 500/speed); }
+    updateScoreboard();
+  }
+  playOT();
 }
 
 /* ---------------- OTHER FUNCTIONS ---------------- */
