@@ -12,7 +12,7 @@ header { background:#cc0000; color:white; padding:15px; text-align:center; font-
 select, button, input { padding:6px; margin:5px 0; border-radius:4px; border:none; }
 button { background:#cc0000; color:white; cursor:pointer; font-weight:bold; }
 button:hover { background:#e63939; }
-.scoreboard { font-family:'Vast Shadow', cursive; font-size:34px; font-weight:bold; margin:10px 0; text-align:center; color:#fff; }
+.scoreboard { font-family:'Vast Shadow', cursive; font-size:48px; font-weight:bold; margin:10px 0; text-align:center; color:#fff; }
 .quarter { margin-top:10px; font-weight:bold; color:#ffcc00; }
 .plays { max-height:250px; overflow-y:auto; background:#222; border:1px solid #333; border-radius:6px; padding:8px; font-size:14px; }
 .odds { margin-top:10px; text-align:center; }
@@ -24,6 +24,7 @@ button:hover { background:#e63939; }
 .tab-buttons button { flex:1; }
 .tab-content { display:none; }
 .tab-content.active { display:block; }
+.speed-control { margin:10px 0; text-align:center; }
 </style>
 </head>
 <body>
@@ -46,6 +47,9 @@ button:hover { background:#e63939; }
     <button onclick="pauseGame()">Pause</button>
     <button onclick="resumeGame()">Resume</button>
     <button onclick="resetGame()">Reset</button>
+    <div class="speed-control">
+      Speed: <input type="range" min="0.1" max="3" step="0.1" value="1" id="speedSlider"> <span id="speedValue">1x</span>
+    </div>
   </div>
 
   <div class="gamecast tab-content" id="gamecast">
@@ -111,8 +115,16 @@ teams.forEach(t=>{
 
 /* GAMECAST */
 let gameInterval, paused=false, history=[];
-let team1, team2, score1, score2, timeRemaining, quarter, playsThisQuarter;
+let team1, team2, score1, score2, timeRemaining, quarter, playsThisQuarter, maxPlaysPerQuarter;
+let speed=1;
 
+const speedSlider=document.getElementById("speedSlider");
+speedSlider.addEventListener("input", ()=>{
+  speed=parseFloat(speedSlider.value);
+  document.getElementById("speedValue").innerText=speed+"x";
+});
+
+/* ------------------ GAME FUNCTIONS ------------------ */
 function startGame(){
   clearInterval(gameInterval);
   paused=false;
@@ -123,18 +135,21 @@ function startGame(){
   if(team1===team2) return alert("Pick different teams!");
 
   score1=0; score2=0; timeRemaining=300; quarter=1; playsThisQuarter=0;
+  maxPlaysPerQuarter = {team1:3, team2:3}; // max 3 scoring plays per team per quarter
   document.getElementById("matchup").innerText=`${team1} vs ${team2}`;
   document.getElementById("plays").innerHTML="";
   updateScoreboard();
 
-  gameInterval=setInterval(simulatePlay,300);
+  gameInterval=setInterval(simulatePlay, 400/speed);
 }
 
 function simulatePlay(){
   if(paused) return;
 
   if(timeRemaining<=0){
-    if(quarter<4){ quarter++; timeRemaining=300; playsThisQuarter=0;
+    if(quarter<4){ 
+      quarter++; timeRemaining=300; playsThisQuarter=0;
+      maxPlaysPerQuarter = {team1:3, team2:3};
       document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`;
     } else {
       clearInterval(gameInterval);
@@ -145,25 +160,44 @@ function simulatePlay(){
     }
   }
 
-  timeRemaining-=Math.floor(Math.random()*15+5);
+  timeRemaining -= Math.floor(Math.random()*15 + 5);
   if(timeRemaining<0) timeRemaining=0;
 
-  if(playsThisQuarter>=6) return;
-  let outcome=Math.random(), playText="", pts=0, scoringTeam;
+  let playText="", pts=0, scoringTeam;
 
+  let outcome=Math.random();
   if(outcome<0.5){ playText="Drive stalls. Punt."; }
-  else if(outcome<0.7){ scoringTeam=Math.random()>0.5?team1:team2; pts=3; playText=`${scoringTeam} - FG ${Math.random()<0.15?"MISSED":"GOOD"}.`; }
-  else if(outcome<0.9){ scoringTeam=Math.random()>0.5?team1:team2; let type=Math.random()<0.5?"run":"pass"; let yards=Math.floor(Math.random()*40+10); pts=6; playText=`${scoringTeam} - ${yards} yd ${type} Touchdown!`; if(Math.random()>0.05){ pts+=1; playText+=" XP GOOD."; } else playText+=" XP NO GOOD."; }
+  else if(outcome<0.7){
+    scoringTeam = Math.random()>0.5 ? team1 : team2;
+    if(maxPlaysPerQuarter[scoringTeam] > 0){
+      pts=3;
+      maxPlaysPerQuarter[scoringTeam]--;
+      playText=`${scoringTeam} - FG GOOD.`;
+    } else playText=`${scoringTeam} attempted FG but max plays reached.`;
+  }
+  else if(outcome<0.9){
+    scoringTeam = Math.random()>0.5 ? team1 : team2;
+    if(maxPlaysPerQuarter[scoringTeam] > 0){
+      pts=6;
+      if(Math.random()>0.05){ pts+=1; playText=`${scoringTeam} - Touchdown! XP GOOD.`; } 
+      else playText=`${scoringTeam} - Touchdown! XP NO GOOD.`;
+      maxPlaysPerQuarter[scoringTeam]--;
+    } else playText=`${scoringTeam} attempted TD but max plays reached.`;
+  }
   else if(outcome<0.95){ playText="Interception thrown!"; }
   else if(outcome<0.98){ playText="Fumble recovered!"; }
-  else { if(Math.random()<0.3){ scoringTeam=Math.random()>0.5?team1:team2; pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`; } else playText="Turnover on downs."; }
+  else { scoringTeam = Math.random()>0.5 ? team1 : team2; pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`; }
 
-  if(pts>0){ playsThisQuarter++; if(scoringTeam===team1) score1+=pts; else score2+=pts; }
+  if(pts>0){
+    if(scoringTeam===team1) score1+=pts;
+    else score2+=pts;
+  }
 
   document.getElementById("plays").innerHTML+=`<p>${formatTime()} Q${quarter} - ${playText}</p>`;
   updateScoreboard();
 }
 
+/* ------------------ OTHER FUNCTIONS ------------------ */
 function updateScoreboard(){
   document.getElementById("scoreboard").innerText=`${team1} ${score1} - ${team2} ${score2} | Q${quarter} ${formatTime()}`;
   let diff=score1-score2, prob=50+diff*2-(4-quarter)*2;
@@ -192,7 +226,7 @@ function updateHistory(){
   history.forEach(h=>{ hist.innerHTML+=`<li>${h.t1} ${h.s1} - ${h.t2} ${h.s2}</li>`; });
 }
 
-/* Auto-scroll */
+/* AUTO-SCROLL */
 const playsDiv=document.getElementById("plays"); 
 const observer=new MutationObserver(()=>{ playsDiv.scrollTop=playsDiv.scrollHeight; }); 
 observer.observe(playsDiv,{childList:true});
@@ -209,7 +243,6 @@ function startPlayoffs(){
 function runPlayoffRound(teamsArr, round){
   let winners=[];
   let i=0;
-
   function nextGame(){
     if(i>=teamsArr.length) {
       if(teamsArr.length>2) runPlayoffRound(winners, round==="Quarterfinals"?"Semifinals":"Final");
@@ -218,6 +251,7 @@ function runPlayoffRound(teamsArr, round){
     }
     const t1=teamsArr[i], t2=teamsArr[i+1]; i+=2;
     team1=t1; team2=t2; score1=0; score2=0; timeRemaining=300; quarter=1; playsThisQuarter=0;
+    maxPlaysPerQuarter = {team1:3, team2:3};
     document.getElementById("matchup").innerText=`${t1} vs ${t2} (${round})`;
     document.getElementById("plays").innerHTML="";
     paused=false;
@@ -225,23 +259,13 @@ function runPlayoffRound(teamsArr, round){
     const simInterval=setInterval(()=>{
       if(paused) return;
       if(timeRemaining<=0){
-        if(quarter<4){ quarter++; timeRemaining=300; playsThisQuarter=0; document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`; }
+        if(quarter<4){ quarter++; timeRemaining=300; playsThisQuarter=0; maxPlaysPerQuarter = {team1:3, team2:3}; document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`; }
         else { clearInterval(simInterval); winners.push(score1>=score2?t1:t2); history.push({t1:t1,t2:t2,s1:score1,s2:score2}); updateHistory(); nextGame(); return; }
       }
-      timeRemaining-=Math.floor(Math.random()*15+5);
+      timeRemaining-=Math.floor(Math.random()*15 + 5);
       if(timeRemaining<0) timeRemaining=0;
-      if(playsThisQuarter>=6) return;
-      let outcome=Math.random(), playText="", pts=0, scoringTeam;
-      if(outcome<0.5){ playText="Drive stalls. Punt."; }
-      else if(outcome<0.7){ scoringTeam=Math.random()>0.5?t1:t2; pts=3; playText=`${scoringTeam} - FG ${Math.random()<0.15?"MISSED":"GOOD"}.`; }
-      else if(outcome<0.9){ scoringTeam=Math.random()>0.5?t1:t2; let type=Math.random()<0.5?"run":"pass"; let yards=Math.floor(Math.random()*40+10); pts=6; playText=`${scoringTeam} - ${yards} yd ${type} Touchdown!`; if(Math.random()>0.05){ pts+=1; playText+=" XP GOOD."; } else playText+=" XP NO GOOD."; }
-      else if(outcome<0.95){ playText="Interception thrown!"; }
-      else if(outcome<0.98){ playText="Fumble recovered!"; }
-      else { if(Math.random()<0.3){ scoringTeam=Math.random()>0.5?t1:t2; pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`; } else playText="Turnover on downs."; }
-      if(pts>0){ playsThisQuarter++; if(scoringTeam===t1) score1+=pts; else score2+=pts; }
-      document.getElementById("plays").innerHTML+=`<p>${formatTime()} Q${quarter} - ${playText}</p>`;
-      updateScoreboard();
-    },200);
+      simulatePlay(); // reuse capped scoring
+    }, 400/speed);
   }
   showTab("gamecast");
   document.getElementById("playoffBracket").innerHTML+=`<h3>${round}</h3>`;
