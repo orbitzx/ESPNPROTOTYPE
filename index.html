@@ -1,234 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>CFB Gamecast + Playoffs + Rank + History + OT</title>
-<link href="https://fonts.googleapis.com/css2?family=Vast+Shadow&display=swap" rel="stylesheet">
-<style>
-body { font-family: Arial, sans-serif; background:#121212; color:#eee; margin:0; }
-header { background:#cc0000; color:white; padding:15px; text-align:center; font-size:26px; font-weight:bold; }
-.container { display:flex; flex-wrap:wrap; padding:20px; gap:20px; }
-.games, .gamecast, .history { flex:1; background:#1e1e1e; border-radius:8px; padding:20px; box-shadow:0 3px 8px rgba(0,0,0,0.4); }
-select, button, input { padding:6px; margin:5px 0; border-radius:4px; border:none; }
-button { background:#cc0000; color:white; cursor:pointer; font-weight:bold; }
-button:hover { background:#e63939; }
-.scoreboard { font-family:'Vast Shadow', cursive; font-size:48px; font-weight:bold; margin:10px 0; text-align:center; color:#fff; }
-.quarter { margin-top:10px; font-weight:bold; color:#ffcc00; }
-.plays { max-height:250px; overflow-y:auto; background:#222; border:1px solid #333; border-radius:6px; padding:8px; font-size:14px; }
-.odds { margin-top:10px; text-align:center; }
-.bar-container { background:#333; border-radius:5px; overflow:hidden; margin-top:8px; height:18px; width:100%; }
-.bar { height:100%; transition:width 0.2s ease; }
-.bar.team1 { background:#cc0000; float:left; }
-.bar.team2 { background:#4444ff; float:right; }
-.tab-buttons { display:flex; gap:10px; margin-bottom:10px; }
-.tab-buttons button { flex:1; }
-.tab-content { display:none; }
-.tab-content.active { display:block; }
-.speed-control { margin:10px 0; text-align:center; }
-</style>
+  <meta charset="UTF-8">
+  <title>CFB Simulator</title>
+  <style>
+    body { background:#111; color:white; font-family:'Vast XL Black', sans-serif; }
+    #scoreboard { font-size:28px; margin:10px 0; }
+    #plays { height:200px; overflow-y:auto; border:1px solid #555; padding:5px; background:#222; }
+    #winBar { display:flex; height:20px; margin:5px 0; border:1px solid #444; }
+    #barTeam1 { background:#006400; height:100%; width:50%; }
+    #barTeam2 { background:#8B0000; height:100%; width:50%; }
+    select, button, input { margin:5px; }
+  </style>
 </head>
 <body>
+<h1>College Football Simulator</h1>
 
-<header>College Football Gamecast</header>
-
-<div class="tab-buttons">
-  <button onclick="showTab('game')">Pick Game</button>
-  <button onclick="showTab('playoff')">Playoffs</button>
-  <button onclick="showTab('rank')">Rank Maker</button>
-  <button onclick="showTab('history')">History</button>
+<div>
+  <label for="team1">Team 1:</label>
+  <select id="team1"></select>
+  <label for="team2">Team 2:</label>
+  <select id="team2"></select>
+  <button onclick="startGame()">Start Game</button>
+  <button onclick="pauseGame()">Pause</button>
+  <button onclick="resumeGame()">Resume</button>
+  <button onclick="resetGame()">Reset</button>
 </div>
 
-<div class="container">
-  <div class="games tab-content" id="game">
-    <h2>Select Teams</h2>
-    <select id="team1"></select>
-    <select id="team2"></select>
-    <button onclick="startGame()">Start Game</button>
-    <button onclick="pauseGame()">Pause</button>
-    <button onclick="resumeGame()">Resume</button>
-    <button onclick="resetGame()">Reset</button>
-    <div class="speed-control">
-      Speed: <input type="range" min="0.1" max="3" step="0.1" value="1" id="speedSlider"> <span id="speedValue">1x</span>
-    </div>
-  </div>
+<div id="scoreboard">No Game Selected</div>
+<div id="winBar"><div id="barTeam1"></div><div id="barTeam2"></div></div>
+<div id="odds">Win Probability: --</div>
 
-  <div class="gamecast tab-content" id="gamecast">
-    <h2 id="matchup">No Game Selected</h2>
-    <div id="scoreboard" class="scoreboard"></div>
-    <div id="odds" class="odds"></div>
-    <div class="bar-container">
-      <div id="barTeam1" class="bar team1" style="width:50%"></div>
-      <div id="barTeam2" class="bar team2" style="width:50%"></div>
-    </div>
-    <div class="plays" id="plays"></div>
-  </div>
-
-  <div class="history tab-content" id="historyTab">
-    <h2>Game History</h2>
-    <ul id="gameHistory"></ul>
-  </div>
+<!-- Force Win -->
+<div>
+  <label>Force Win:</label>
+  <select id="forceWinTeam"></select>
+  <button onclick="forceWin()">Apply</button>
 </div>
 
-<div class="container">
-  <div class="games tab-content" id="playoff">
-    <h2>CFB Playoff Builder</h2>
-    <p>Select 8 Teams:</p>
-    <div id="playoffTeams"></div>
-    <button onclick="startPlayoffs()">Start Playoffs</button>
-    <div id="playoffBracket"></div>
-  </div>
+<div id="plays"></div>
 
-  <div class="gamecast tab-content" id="rank">
-    <h2>CFB Rank Maker</h2>
-    <div id="rankMaker"></div>
-    <button onclick="showRanks()">Show Ranks</button>
-    <ul id="rankList"></ul>
-  </div>
+<!-- Speed Slider -->
+<div>
+  <label for="speed">Speed:</label>
+  <input type="range" id="speed" min="1" max="10" value="5">
 </div>
+
+<!-- Settings -->
+<h2>Settings</h2>
+<label for="fontSelector">Choose Font:</label>
+<select id="fontSelector" onchange="changeFont()">
+  <option value="'Vast XL Black', sans-serif">Vast XL Black</option>
+  <option value="'ESPN Scoreboard', sans-serif">ESPN Scoreboard</option>
+  <option value="Arial, sans-serif">Arial</option>
+  <option value="Times New Roman, serif">Times New Roman</option>
+</select>
+
+<h2>History</h2>
+<ul id="gameHistory"></ul>
 
 <script>
-/* ---------------- TAB CONTROL ---------------- */
-function showTab(id){
-  document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-showTab('game');
-
-/* ---------------- TEAMS ---------------- */
-const teams = [
-"Alabama","Georgia","Ohio State","Michigan","Texas","Oklahoma",
-"Clemson","Notre Dame","LSU","Florida State","Penn State","USC",
-"Tennessee","Oregon","Washington","Texas A&M","Florida","Auburn",
-"Wisconsin","Iowa","Ole Miss","Kentucky","Miami","North Carolina",
-"Utah","TCU","Baylor","Mississippi State","Arkansas","Kansas State",
-"Oklahoma State","Nebraska","South Carolina","Louisville","Missouri",
-"NC State","Virginia Tech","Maryland","UCF","Boise State","West Virginia",
-"Pittsburgh","Minnesota","Michigan State","Duke","Colorado","Colorado State",
-"Texas Tech","Houston","Cincinnati","BYU","Arizona","Arizona State","Stanford",
-"California","Northwestern","Illinois","Purdue","Indiana","Rutgers","Syracuse",
-"Wake Forest","Boston College","SMU","Tulane","Memphis"
+/* ---------------- TEAM LIST ---------------- */
+const teams=[
+  "Alabama","Georgia","Michigan","Ohio State","Texas","USC","Clemson","Notre Dame",
+  "Oklahoma","Florida State","LSU","Oregon","Penn State","Washington","Tennessee","Utah",
+  "Florida","Wisconsin","Miami","Texas A&M","Iowa","Ole Miss","TCU","North Carolina"
 ];
+
 teams.forEach(t=>{
   document.getElementById("team1").add(new Option(t,t));
   document.getElementById("team2").add(new Option(t,t));
+  document.getElementById("forceWinTeam").add(new Option(t,t));
 });
 
-/* ---------------- GAMECAST VARIABLES ---------------- */
-let gameInterval, paused=false, history=[];
-let team1, team2, score1, score2, timeRemaining, quarter, maxPlaysPerQuarter;
-let speed=1;
+/* ---------------- VARIABLES ---------------- */
+let score1=0,score2=0,team1="",team2="",quarter=1,timeRemaining=900; // 15 min qtrs
+let paused=false,gameInterval=null,history=[],speed=5;
+let forceWinTeam=null;
 
-const speedSlider=document.getElementById("speedSlider");
-speedSlider.addEventListener("input", ()=>{
-  speed=parseFloat(speedSlider.value);
-  document.getElementById("speedValue").innerText=speed+"x";
-});
-
-/* ---------------- GAME FUNCTIONS ---------------- */
+/* ---------------- GAME ---------------- */
 function startGame(){
-  clearInterval(gameInterval);
-  paused=false;
-  showTab('gamecast');
-
+  resetGame();
   team1=document.getElementById("team1").value;
   team2=document.getElementById("team2").value;
-  if(team1===team2) return alert("Pick different teams!");
-
-  score1=0; score2=0; timeRemaining=900; quarter=1; // 15 mins
-  maxPlaysPerQuarter = { [team1]: 2, [team2]: 2 }; // fewer scoring plays
-  document.getElementById("matchup").innerText=`${team1} vs ${team2}`;
-  document.getElementById("plays").innerHTML="";
-  updateScoreboard();
-
-  gameInterval=setInterval(simulatePlay, 400/speed);
+  score1=0; score2=0; quarter=1; timeRemaining=900;
+  document.getElementById("scoreboard").innerText=`${team1} vs ${team2}`;
+  gameInterval=setInterval(simulatePlay,1000/Math.max(1,document.getElementById("speed").value));
 }
 
 function simulatePlay(){
   if(paused) return;
-
+  timeRemaining-=Math.floor(Math.random()*40+20); // longer drives
   if(timeRemaining<=0){
-    if(quarter<4){ 
-      quarter++; timeRemaining=900; maxPlaysPerQuarter = { [team1]: 2, [team2]: 2 };
-      document.getElementById("plays").innerHTML+=`<div class="quarter">-- Start of Q${quarter} --</div>`;
-    } else {
-      clearInterval(gameInterval);
-      // 5% chance OT if tied
-      if(score1===score2 && Math.random()<0.05){
-        document.getElementById("plays").innerHTML+=`<p><b>Tied game! OVERTIME begins!</b></p>`;
-        startOvertime();
-        return;
-      }
-      document.getElementById("plays").innerHTML+=`<p><b>FINAL:</b> ${team1} ${score1} - ${team2} ${score2}</p>`;
-      history.push({t1:team1,t2:team2,s1:score1,s2:score2});
-      updateHistory();
-      return;
-    }
+    quarter++; timeRemaining=900;
+    if(quarter>4){ endGame(); return; }
   }
 
-  // Longer drives
-  timeRemaining -= Math.floor(Math.random()*30 + 30);
-
-  if(timeRemaining<0) timeRemaining=0;
-
-  let playText="", pts=0, scoringTeam;
-  let outcome=Math.random();
-
-  if(outcome<0.6){ playText="Drive stalls. Punt."; }
-  else if(outcome<0.75){
-    scoringTeam = Math.random()>0.5 ? team1 : team2;
-    if(maxPlaysPerQuarter[scoringTeam]>0){ pts=3; maxPlaysPerQuarter[scoringTeam]--; playText=`${scoringTeam} - FG GOOD.`; }
+  if(Math.random()<0.3){ // 30% chance drive ends in score
+    let pts=0,roll=Math.random();
+    if(roll<0.5) pts=7; // TD + XP
+    else if(roll<0.8) pts=3; // FG
+    else pts=0;
+    if(Math.random()<0.5) score1+=pts; else score2+=pts;
+    document.getElementById("plays").innerHTML+=`<p>Score! ${team1} ${score1} - ${team2} ${score2}</p>`;
   }
-  else if(outcome<0.88){
-    scoringTeam = Math.random()>0.5 ? team1 : team2;
-    if(maxPlaysPerQuarter[scoringTeam]>0){
-      pts=6; if(Math.random()>0.5) pts+=1;
-      maxPlaysPerQuarter[scoringTeam]--; 
-      playText=`${scoringTeam} - Touchdown!`;
-    }
-  }
-  else if(outcome<0.94){ playText="Interception thrown!"; }
-  else if(outcome<0.97){ playText="Fumble recovered!"; }
-  else { scoringTeam = Math.random()>0.5 ? team1 : team2; pts=2; playText=`${scoringTeam} DEFENSE SAFETY!`; }
-
-  if(pts>0){
-    if(scoringTeam===team1) score1+=pts;
-    else score2+=pts;
-  }
-
-  document.getElementById("plays").innerHTML+=`<p>${formatTime()} Q${quarter} - ${playText}</p>`;
   updateScoreboard();
 }
 
-/* ---------------- OVERTIME ---------------- */
-function startOvertime(){
-  let otRound=1;
-  let otScore={ [team1]:0, [team2]:0 };
-
-  function playOT(){
-    [team1, team2].forEach(t=>{
-      let outcome=Math.random();
-      let pts=0;
-      if(outcome<0.6) pts=3; // FG
-      else if(outcome<0.9){ pts=6; if(Math.random()>0.5) pts+=1; } // TD + XP
-      else pts=0; // no score
-      otScore[t]+=pts;
-      document.getElementById("plays").innerHTML+=`<p>OT${otRound} - ${t} scores ${pts} points.</p>`;
-    });
-
-    if(otScore[team1]!==otScore[team2]){
-      score1 += otScore[team1]; score2 += otScore[team2];
-      document.getElementById("plays").innerHTML+=`<p><b>FINAL (OT): ${team1} ${score1} - ${team2} ${score2}</b></p>`;
-      history.push({t1:team1,t2:team2,s1:score1,s2:score2});
-      updateHistory();
-    } else { otRound++; setTimeout(playOT, 500/speed); }
-    updateScoreboard();
+function endGame(){
+  clearInterval(gameInterval);
+  if(forceWinTeam){
+    if(forceWinTeam===team1){ score1=Math.max(score1,score2+1); }
+    else if(forceWinTeam===team2){ score2=Math.max(score2,score1+1); }
   }
-  playOT();
+  document.getElementById("plays").innerHTML+=`<p><b>FINAL: ${team1} ${score1} - ${team2} ${score2}</b></p>`;
+  history.push({t1:team1,t2:team2,s1:score1,s2:score2});
+  updateHistory();
 }
 
-/* ---------------- OTHER FUNCTIONS ---------------- */
 function updateScoreboard(){
-  document.getElementById("scoreboard").innerText=`${team1} ${score1} - ${team2} ${score2} | Q${quarter} ${formatTime()}`;
+  document.getElementById("scoreboard").innerText=
+    `${team1} ${score1} - ${team2} ${score2} | Q${quarter} ${formatTime()}`;
   let diff=score1-score2, prob=50+diff*2-(4-quarter)*2;
   if(prob<1) prob=1; if(prob>99) prob=99;
   document.getElementById("odds").innerText=`Win Probability: ${team1} ${prob}% | ${team2} ${100-prob}%`;
@@ -236,64 +128,28 @@ function updateScoreboard(){
   document.getElementById("barTeam2").style.width=(100-prob)+"%";
 }
 
+/* ---------------- CONTROLS ---------------- */
 function pauseGame(){ paused=true; }
 function resumeGame(){ paused=false; }
-function resetGame(){ 
-  clearInterval(gameInterval); paused=false;
-  document.getElementById("plays").innerHTML=""; 
-  document.getElementById("matchup").innerText="No Game Selected"; 
-  document.getElementById("scoreboard").innerText=""; 
-  document.getElementById("odds").innerText=""; 
-  document.getElementById("barTeam1").style.width="50%"; 
-  document.getElementById("barTeam2").style.width="50%"; 
+function resetGame(){
+  clearInterval(gameInterval); paused=false; forceWinTeam=null;
+  document.getElementById("plays").innerHTML="";
+  document.getElementById("scoreboard").innerText="No Game Selected";
+  document.getElementById("odds").innerText="";
+  document.getElementById("barTeam1").style.width="50%";
+  document.getElementById("barTeam2").style.width="50%";
 }
-
-function formatTime(){ let min=Math.floor(timeRemaining/60), sec=timeRemaining%60; return `${min}:${sec<10?"0":""}${sec}`; }
-
+function formatTime(){ let m=Math.floor(timeRemaining/60), s=timeRemaining%60; return `${m}:${s<10?"0":""}${s}`; }
 function updateHistory(){
   const hist=document.getElementById("gameHistory"); hist.innerHTML="";
   history.forEach(h=>{ hist.innerHTML+=`<li>${h.t1} ${h.s1} - ${h.t2} ${h.s2}</li>`; });
 }
+function forceWin(){ forceWinTeam=document.getElementById("forceWinTeam").value; alert(forceWinTeam+" will be forced to win!"); }
 
-/* AUTO-SCROLL */
-const playsDiv=document.getElementById("plays"); 
-const observer=new MutationObserver(()=>{ playsDiv.scrollTop=playsDiv.scrollHeight; }); 
-observer.observe(playsDiv,{childList:true});
-
-/* ---------------- PLAYOFF BUILDER ---------------- */
-const playoffSlots=8; const playoffContainer=document.getElementById("playoffTeams");
-for(let i=1;i<=playoffSlots;i++){ 
-  let sel=document.createElement("select"); sel.id="playoff"+i; 
-  teams.forEach(t=>sel.add(new Option(t,t))); 
-  playoffContainer.appendChild(sel); playoffContainer.appendChild(document.createElement("br")); 
-}
-
-function startPlayoffs(){
-  const selected=[]; for(let i=1;i<=playoffSlots;i++) selected.push(document.getElementById("playoff"+i).value);
-  alert("Playoffs start! Games will simulate in the gamecast tab.");
-}
-
-/* ---------------- RANK MAKER ---------------- */
-const rankMakerDiv=document.getElementById("rankMaker");
-teams.forEach(t=>{ 
-  let input=document.createElement("input"); input.type="number"; input.value=1; input.min=1; input.max=100; input.id="rank_"+t.replace(/\s/g,"_"); 
-  rankMakerDiv.appendChild(document.createTextNode(t+" ")); 
-  rankMakerDiv.appendChild(input); 
-  rankMakerDiv.appendChild(document.createElement("br")); 
-});
-
-function showRanks(){ 
-  const ranks=[]; 
-  teams.forEach(t=>{ 
-    let val=parseInt(document.getElementById("rank_"+t.replace(/\s/g,"_")).value); 
-    ranks.push({team:t, rank:val}); 
-  }); 
-  ranks.sort((a,b)=>a.rank-b.rank); 
-  let listHTML=""; 
-  ranks.forEach(r=>{ listHTML+=`<li>${r.rank}: ${r.team}</li>`; }); 
-  document.getElementById("rankList").innerHTML=listHTML; 
+/* ---------------- SETTINGS ---------------- */
+function changeFont(){
+  document.body.style.fontFamily=document.getElementById("fontSelector").value;
 }
 </script>
-
 </body>
 </html>
